@@ -1,0 +1,7 @@
+# torch and torchvision come preinstalled in the pytorch/pytorch base image.
+# These are the remaining Python dependencies for detection.py / util_2.py.
+pillow
+numpy<2            # torch 2.3.1 in the base image expects NumPy 1.x
+opencv-python-headless
+matplotlib
+simplekml

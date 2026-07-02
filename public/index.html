@@ -1,0 +1,538 @@
+<html>
+<head>
+    <title>Acacia Inference &amp; Geolocation</title>
+
+    <link rel="stylesheet"
+          href="https://cdnjs.cloudflare.com/ajax/libs/dropzone/5.9.3/dropzone.min.css">
+
+    <style>
+        body {
+            font-family: Arial;
+            margin: 20px;
+        }
+
+        .dropzone {
+            border: 2px dashed #0087F7;
+            border-radius: 10px;
+            padding: 20px;
+            background: #fafafa;
+            min-height: 150px;
+        }
+        .process-box {
+            margin-top: 20px;
+            padding: 10px;
+            border: 1px solid #ccc;
+            border-radius: 5px;
+            background: #f9f9f9;
+        }
+
+        button {
+            margin-top: 10px;
+            padding: 10px;
+            cursor: pointer;
+        }
+
+        .app-title {
+            margin: 0 0 16px 0;
+            font-size: 24px;
+            color: #0087F7;
+        }
+
+        /* tabs */
+        .tabs {
+            display: flex;
+            gap: 4px;
+            border-bottom: 2px solid #e0e0e0;
+            margin-bottom: 20px;
+        }
+        .tab-btn {
+            margin: 0;
+            padding: 10px 22px;
+            background: none;
+            border: none;
+            border-bottom: 2px solid transparent;
+            margin-bottom: -2px;
+            cursor: pointer;
+            font-size: 15px;
+            color: #666;
+        }
+        .tab-btn:hover {
+            color: #0087F7;
+        }
+        .tab-btn.active {
+            color: #0087F7;
+            border-bottom-color: #0087F7;
+            font-weight: bold;
+        }
+        .tab-panel {
+            display: none;
+        }
+        .tab-panel.active {
+            display: block;
+        }
+
+        /* setup / upload card */
+        .setup-box {
+            max-width: 700px;
+            padding: 20px;
+            border: 1px solid #e0e0e0;
+            border-radius: 8px;
+            background: #fff;
+        }
+        .setup-box h2 {
+            margin-top: 0;
+        }
+        .setup-intro {
+            color: #666;
+            margin-top: 0;
+            margin-bottom: 20px;
+        }
+        .field-label {
+            display: block;
+            font-weight: bold;
+            margin-bottom: 6px;
+        }
+        .batch-input {
+            width: 100%;
+            box-sizing: border-box;
+            padding: 10px;
+            margin-bottom: 18px;
+            border: 1px solid #ccc;
+            border-radius: 5px;
+            font-size: 14px;
+        }
+        .batch-input:focus {
+            outline: none;
+            border-color: #0087F7;
+        }
+        /* run inference button, right aligned + blue */
+        .run-row {
+            display: flex;
+            justify-content: flex-end;
+            margin-top: 16px;
+        }
+        #uploadBtn {
+            background: #0087F7;
+            color: #fff;
+            border: none;
+            border-radius: 5px;
+            padding: 10px 24px;
+            font-size: 14px;
+            font-weight: bold;
+        }
+        #uploadBtn:hover {
+            background: #0072d6;
+        }
+
+        /* 🚨 FIX: hide progress BEFORE upload starts */
+        .dz-progress {
+            display: none !important;
+        }
+
+        /* show progress only when uploading */
+        .dz-processing .dz-progress {
+            display: block !important;
+        }
+
+        /* stretch preview image to fill the entire box (no crop, no letterbox) */
+        .dz-image img {
+            width: 100% !important;
+            height: 100% !important;
+            object-fit: fill !important;
+        }
+
+        /* table fills the window but never grows past a max width */
+        #process-table {
+            width: 100%;
+            max-width: 900px;
+            border-collapse: collapse;
+            table-layout: fixed;
+        }
+
+        /* center every cell in the processing table */
+        #process-table th,
+        #process-table td {
+            text-align: center;
+            vertical-align: middle;
+            word-wrap: break-word;
+            overflow-wrap: break-word;
+        }
+
+        /* error status in the processing table */
+        .status-error {
+            color: #c0392b;
+            font-weight: bold;
+            cursor: help;
+        }
+
+        /* "starting inference" loading state */
+        .status-loading {
+            display: inline-flex;
+            align-items: center;
+            gap: 8px;
+            color: #666;
+        }
+        .spinner {
+            width: 14px;
+            height: 14px;
+            border: 2px solid #d0d0d0;
+            border-top-color: #0087F7;
+            border-radius: 50%;
+            animation: spin 0.7s linear infinite;
+        }
+        @keyframes spin {
+            to { transform: rotate(360deg); }
+        }
+
+        /* action dropdown */
+        .action-menu {
+            position: relative;
+            display: inline-block;
+        }
+        .action-btn {
+            margin: 0;
+            padding: 4px 12px;
+            background: #fff;
+            border: 1px solid #ccc;
+            border-radius: 4px;
+            cursor: pointer;
+            font-size: 13px;
+        }
+        .action-btn:hover {
+            background: #f0f0f0;
+        }
+        .action-dropdown {
+            display: none;
+            position: absolute;
+            right: 0;
+            margin-top: 4px;
+            min-width: 120px;
+            background: #fff;
+            border: 1px solid #ccc;
+            border-radius: 4px;
+            box-shadow: 0 2px 8px rgba(0, 0, 0, 0.15);
+            overflow: hidden;
+            z-index: 10;
+        }
+        .action-menu.open .action-dropdown {
+            display: block;
+        }
+        .action-dropdown a,
+        .action-dropdown span {
+            display: block;
+            padding: 8px 14px;
+            text-align: left;
+            text-decoration: none;
+            color: #333;
+            font-size: 13px;
+        }
+        .action-dropdown a:hover {
+            background: #f0f0f0;
+        }
+        .action-dropdown a.danger {
+            color: #c0392b;
+        }
+        .action-dropdown a.danger:hover {
+            background: #fdecea;
+        }
+        .action-dropdown .disabled {
+            color: #bbb;
+            cursor: not-allowed;
+        }
+    </style>
+</head>
+
+<body>
+
+
+<!-- TAB BAR -->
+<div class="tabs">
+    <button class="tab-btn active" data-tab="setup" onclick="showTab('setup')">Set Up</button>
+    <button class="tab-btn" data-tab="result" onclick="showTab('result')">Result</button>
+</div>
+
+<!-- SET UP PANEL -->
+<div id="tab-setup" class="tab-panel active">
+    <div class="setup-box">
+
+        <!-- STEP 1: BATCH NAME -->
+        <label class="field-label" for="batchId">1. Batch name</label>
+        <input type="text" id="batchId" class="batch-input"
+               placeholder="e.g. drone_mission_001" />
+
+        <!-- STEP 2: DROPZONE -->
+        <label class="field-label" for="myDropzone">2. Aerial images</label>
+        <form id="myDropzone"
+              class="dropzone"
+              action="/upload"
+              enctype="multipart/form-data">
+        </form>
+
+        <!-- STEP 3: RUN -->
+        <div class="run-row">
+            <button id="uploadBtn">Run Inference</button>
+        </div>
+    </div>
+</div>
+
+<!-- RESULT PANEL -->
+<div id="tab-result" class="tab-panel">
+    <div id="process-box" class="process-box">
+        <table id="process-table">
+            <thead>
+                <tr>
+                    <th>Batch ID</th>
+                    <th>Status</th>
+                    <th>Action</th>
+                </tr>
+            </thead>
+            <tbody></tbody>
+        </table>
+    </div>
+</div>
+
+<script src="https://cdnjs.cloudflare.com/ajax/libs/dropzone/5.9.3/min/dropzone.min.js"></script>
+
+<script>
+Dropzone.autoDiscover = false;
+
+/* -------------------------
+   TAB SWITCHING
+-------------------------- */
+function showTab(name) {
+    document.querySelectorAll(".tab-panel").forEach(p => p.classList.remove("active"));
+    document.querySelectorAll(".tab-btn").forEach(b => b.classList.remove("active"));
+    document.getElementById("tab-" + name).classList.add("active");
+    document.querySelector(`.tab-btn[data-tab="${name}"]`).classList.add("active");
+}
+
+/* -------------------------
+   ONE BATCH ID FOR ALL FILES
+-------------------------- */
+let batchId = null;
+
+const dz = new Dropzone("#myDropzone", {
+    url: "/upload",
+    paramName: "file",
+    autoProcessQueue: false,
+    parallelUploads: 10,
+    maxFilesize: 30,
+    maxThumbnailFilesize: 30,
+    addRemoveLinks: true,
+    acceptedFiles: "image/*",
+    dictDefaultMessage: "Drop drone aerial images here, or click to browse",
+
+    // generate an uncropped thumbnail; CSS stretches it to fill the box
+    thumbnailMethod: "contain",
+    thumbnailWidth: 120,
+    thumbnailHeight: 120,
+
+    // resizeWidth: 1200,
+    // resizeHeight: 1200,
+    // resizeMethod: "contain"
+});
+dz.options.createImageThumbnails = true;
+
+/* -------------------------
+   BUTTON = START UPLOAD
+-------------------------- */
+document.getElementById("uploadBtn").addEventListener("click", () => {
+
+    if (dz.files.length === 0) {
+        alert("Please select files first");
+        return;
+    }
+
+    // Create ONE folder ID for this upload batch, based on the entered name
+    const batchName = document.getElementById("batchId").value.trim();
+    batchId = batchName || Date.now().toString();
+
+    dz.processQueue();
+    showTab("result");
+    loadBatches();
+    fetch("/process", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ batchId })
+    }).then(res => res.json())
+      .then(data => {
+          loadBatches();
+        });
+    console.log("Batch ID:", batchId);
+
+});
+/* -------------------------
+   SEND batchId WITH EVERY FILE
+-------------------------- */
+dz.on("sending", function(file, xhr, formData) {
+
+    formData.append("batchId", batchId);
+
+    const progress = file.previewElement.querySelector(".dz-progress");
+
+    if (progress) {
+        progress.style.display = "block";
+    }
+});
+const tbody = document.querySelector("#process-table tbody");
+
+// keep a reference to each batch's row so we don't re-query / rebuild every poll
+const batchRows = new Map();
+
+// map raw backend status values to friendlier display labels
+function statusLabel(status) {
+    const labels = {
+        unknown: "starting inference",
+        completed: "complete"
+    };
+    return labels[status] ?? status;
+}
+
+// open result.html via POST so the batchId is sent in the body, not the URL
+function openResult(batchId) {
+    const form = document.createElement("form");
+    form.method = "POST";
+    form.action = "/result";
+
+    const input = document.createElement("input");
+    input.type = "hidden";
+    input.name = "batchId";
+    input.value = batchId;
+
+    form.appendChild(input);
+    document.body.appendChild(form);
+    form.submit();
+}
+
+function actionCell(batch) {
+    const safeId = batch.batchId.replace(/'/g, "\\'");
+    const canOpen = batch.progress == 100;
+
+    const openItem = canOpen
+        ? `<a href="#" onclick="openResult('${safeId}'); return false;">Open</a>`
+        : `<span class="disabled" title="not available">Open</span>`;
+
+    return `
+        <td>
+            <div class="action-menu">
+                <button class="action-btn" onclick="toggleMenu(this)">Actions &#9662;</button>
+                <div class="action-dropdown">
+                    ${openItem}
+                    <a href="#" class="danger" onclick="deleteBatch('${safeId}'); return false;">Delete</a>
+                </div>
+            </div>
+        </td>`;
+}
+
+function rowHtml(batch) {
+    let statusCell;
+    if (batch.status === "error") {
+        const msg = (batch.error ?? "Unknown error").replace(/"/g, "&quot;");
+        statusCell = `<td class="status-error" title="${msg}">error</td>`;
+    } else if (batch.status === "processing") {
+        // while processing, show the progress percentage instead of the word
+        statusCell = `<td>${batch.progress ?? 0}%</td>`;
+    } else if (batch.status === "unknown") {
+        // inference is starting up — show a circular loading spinner
+        statusCell = `<td><span class="status-loading"><span class="spinner"></span>${statusLabel(batch.status)}</span></td>`;
+    } else {
+        statusCell = `<td>${statusLabel(batch.status)}</td>`;
+    }
+
+    return `
+            <td>${batch.batchId}</td>
+            ${statusCell}
+            ${actionCell(batch)}`;
+}
+
+function toggleMenu(btn) {
+    const menu = btn.parentElement;
+    const isOpen = menu.classList.contains("open");
+    // close any other open menus first
+    document.querySelectorAll(".action-menu.open").forEach(m => m.classList.remove("open"));
+    if (!isOpen) {
+        menu.classList.add("open");
+    }
+}
+
+// close the dropdown when clicking anywhere outside it
+document.addEventListener("click", (e) => {
+    if (!e.target.closest(".action-menu")) {
+        document.querySelectorAll(".action-menu.open").forEach(m => m.classList.remove("open"));
+    }
+});
+
+async function deleteBatch(batchId) {
+
+    if (!confirm(`Delete batch "${batchId}" and all its files? This cannot be undone.`)) {
+        return;
+    }
+
+    const res = await fetch(`/batches/${encodeURIComponent(batchId)}`, {
+        method: "DELETE"
+    });
+
+    if (!res.ok) {
+        const data = await res.json().catch(() => ({}));
+        alert(`Failed to delete: ${data.message ?? res.status}`);
+        return;
+    }
+
+    // remove the row from the table and our cache
+    const row = batchRows.get(batchId);
+    if (row) {
+        row.remove();
+        batchRows.delete(batchId);
+    }
+}
+
+async function loadBatches() {
+
+    const res = await fetch("/batches");
+    const batches = await res.json();
+
+    batches.forEach(batch => {
+
+        let row = batchRows.get(batch.batchId);
+
+        if (!row) {
+            row = document.createElement("tr");
+            tbody.appendChild(row);
+            batchRows.set(batch.batchId, row);
+        }
+
+        // only rewrite the row when its content actually changed (avoids flicker)
+        const signature = `${batch.status}|${batch.progress}|${batch.error ?? ""}`;
+        if (row.dataset.signature === signature) {
+            return;
+        }
+        row.dataset.signature = signature;
+        row.innerHTML = rowHtml(batch);
+    });
+}
+
+setInterval(loadBatches, 2000);
+
+/* -------------------------
+   DEBUG
+-------------------------- */
+dz.on("addedfile", file => {
+    console.log("Added:", file.name);
+});
+
+dz.on("success", (file, response) => {
+    console.log("Uploaded:", file.name);
+});
+
+/* fires when ALL files complete */
+dz.on("queuecomplete", () => {
+    console.log("All uploads completed");
+
+    dz.removeAllFiles();
+
+    batchId = null;
+});
+</script>
+
+</body>
+</html>

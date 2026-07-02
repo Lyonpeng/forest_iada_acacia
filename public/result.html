@@ -1,0 +1,249 @@
+<html>
+<head>
+    <title>Acacia Inference &amp; Geolocation &mdash; Results</title>
+
+    <!-- CesiumJS (3D globe) -->
+    <link rel="stylesheet"
+          href="https://unpkg.com/cesium@1.119/Build/Cesium/Widgets/widgets.css">
+    <script>
+        // tells Cesium where to load its workers / assets from
+        window.CESIUM_BASE_URL = "https://unpkg.com/cesium@1.119/Build/Cesium/";
+    </script>
+    <script src="https://unpkg.com/cesium@1.119/Build/Cesium/Cesium.js"></script>
+
+    <style>
+        body {
+            font-family: Arial;
+            margin: 20px;
+        }
+
+        a.back {
+            display: inline-block;
+            margin-bottom: 10px;
+        }
+
+        #cesiumContainer {
+            width: 100%;
+            max-width: 1100px;
+            height: 500px;
+            border: 1px solid #ccc;
+            border-radius: 5px;
+            margin-bottom: 10px;
+        }
+
+        .map-note {
+            color: #888;
+            margin: 0 0 20px 0;
+        }
+
+        .map-controls {
+            display: flex;
+            align-items: center;
+            gap: 14px;
+            margin-bottom: 8px;
+            font-size: 14px;
+        }
+        .map-controls label {
+            cursor: pointer;
+        }
+
+        .gallery {
+            display: grid;
+            grid-template-columns: repeat(auto-fill, minmax(300px, 1fr));
+            gap: 15px;
+            margin-top: 20px;
+            max-width: 1100px;
+        }
+
+        .gallery img {
+            width: 100%;
+            height: auto;
+            border: 1px solid #ccc;
+            border-radius: 5px;
+            background: #fafafa;
+        }
+
+        .empty {
+            color: #888;
+        }
+    </style>
+</head>
+
+<body>
+
+<a class="back" href="/index.html">&larr; Back</a>
+<h2 id="title">Results</h2>
+
+<!-- 3D GLOBE -->
+<h3>Geolocation</h3>
+<div class="map-controls">
+    <span>Coverage:</span>
+    <label><input type="radio" name="coverageMode" value="shaded" checked> Shaded</label>
+    <label><input type="radio" name="coverageMode" value="outline"> Outline</label>
+</div>
+<div id="cesiumContainer"></div>
+<p id="mapNote" class="map-note"></p>
+
+<!-- IMAGE GALLERY -->
+<h3>Detection</h3>
+<div id="gallery" class="gallery"></div>
+
+<script>
+// batchId is injected by the server (POST /result) as window.BATCH_ID
+const batchId = window.BATCH_ID || null;
+
+const title = document.getElementById("title");
+const gallery = document.getElementById("gallery");
+const mapNote = document.getElementById("mapNote");
+
+// coverage rendering: filled polygons vs. their outline polylines
+let coverageFills = [];
+let coverageOutlines = [];
+
+function setCoverageMode(outlineOnly) {
+    coverageFills.forEach(e => { if (e.polygon) e.polygon.fill = !outlineOnly; });
+    coverageOutlines.forEach(e => { if (e.polyline) e.polyline.show = outlineOnly; });
+}
+
+document.querySelectorAll('input[name="coverageMode"]').forEach(radio => {
+    radio.addEventListener("change", e => setCoverageMode(e.target.value === "outline"));
+});
+
+/* -------------------------
+   3D GLOBE (Cesium)
+-------------------------- */
+function initGlobe() {
+
+    // Google satellite imagery (deepest high-zoom detail, no API key required).
+    const viewer = new Cesium.Viewer("cesiumContainer", {
+        baseLayer: new Cesium.ImageryLayer(
+            new Cesium.UrlTemplateImageryProvider({
+                url: "https://mt{s}.google.com/vt/lyrs=s&x={x}&y={y}&z={z}",
+                subdomains: ["0", "1", "2", "3"],
+                credit: "Imagery © Google",
+                maximumLevel: 22
+            })
+        ),
+        baseLayerPicker: false,
+        geocoder: false,
+        timeline: false,
+        animation: false,
+        homeButton: false,
+        sceneModePicker: true,
+        navigationHelpButton: false,
+        sceneMode: Cesium.SceneMode.SCENE2D   // start in flat 2D view by default
+    });
+
+    viewer.scene.screenSpaceCameraController._zoomFactor = 1.5;
+
+    // Load the batch's coverage.kml (detection polygons + GPS)
+    const kmlUrl = `/uploads/${encodeURIComponent(batchId)}/coverage.kml`;
+
+    Cesium.KmlDataSource.load(kmlUrl, {
+        camera: viewer.scene.camera,
+        canvas: viewer.scene.canvas,
+        clampToGround: true
+    })
+    .then(dataSource => {
+        viewer.dataSources.add(dataSource);
+
+        if (dataSource.entities.values.length === 0) {
+            mapNote.textContent = "Coverage file loaded but contains no geometry.";
+            return;
+        }
+
+        // force red coverage, build an outline, and drop a point marker per polygon
+        const now = viewer.clock.currentTime;
+        coverageFills = [];
+        coverageOutlines = [];
+
+        dataSource.entities.values.forEach(entity => {
+            if (entity.polygon) {
+                entity.polygon.material = Cesium.Color.RED.withAlpha(0.5);
+                coverageFills.push(entity);
+
+                const hierarchy = entity.polygon.hierarchy.getValue(now);
+                if (hierarchy && hierarchy.positions.length) {
+
+                    // ground-clamped polyline tracing the mask outline (hidden until "Outline" mode)
+                    const loop = hierarchy.positions.concat([hierarchy.positions[0]]);
+                    const outline = viewer.entities.add({
+                        polyline: {
+                            positions: loop,
+                            width: 3,
+                            material: Cesium.Color.RED,
+                            clampToGround: true,
+                            show: false
+                        }
+                    });
+                    coverageOutlines.push(outline);
+
+                    // pick a single coordinate (centre of the polygon) for a marker
+                    const center = Cesium.BoundingSphere.fromPoints(hierarchy.positions).center;
+                    viewer.entities.add({
+                        name: entity.name || "Detection",
+                        position: center,
+                        point: {
+                            pixelSize: 9,
+                            color: Cesium.Color.YELLOW,
+                            outlineColor: Cesium.Color.BLACK,
+                            outlineWidth: 1,
+                            disableDepthTestDistance: Number.POSITIVE_INFINITY
+                        }
+                    });
+                }
+            }
+            if (entity.polyline) {
+                entity.polyline.material = Cesium.Color.RED;
+                entity.polyline.width = 2;
+            }
+        });
+
+        // apply whichever mode is currently selected (defaults to shaded)
+        const selected = document.querySelector('input[name="coverageMode"]:checked');
+        setCoverageMode(selected && selected.value === "outline");
+
+        viewer.flyTo(dataSource);
+        mapNote.textContent = "";
+    })
+    .catch(err => {
+        mapNote.textContent =
+            "No coverage map available for this batch (missing or invalid coverage.kml).";
+        console.error("KML load failed:", err);
+    });
+}
+
+/* -------------------------
+   IMAGE GALLERY
+-------------------------- */
+async function loadImages() {
+
+    const res = await fetch(`/images/${encodeURIComponent(batchId)}`);
+    const images = await res.json();
+
+    if (images.length === 0) {
+        gallery.innerHTML = `<p class="empty">No images found for this batch.</p>`;
+        return;
+    }
+
+    gallery.innerHTML = images.map(src => `
+        <a href="${src}" target="_blank">
+            <img src="${src}" alt="${src.split('/').pop()}" />
+        </a>
+    `).join("");
+}
+
+/* -------------------------
+   START
+-------------------------- */
+if (!batchId) {
+    title.textContent = "No batch selected";
+} else {
+    title.textContent = `Result: ${batchId}`;
+    initGlobe();
+    loadImages();
+}
+</script>
+
+</body>
+</html>

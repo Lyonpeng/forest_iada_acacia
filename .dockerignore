@@ -1,0 +1,24 @@
+# Node
+node_modules
+
+# Python virtualenv (deps are reinstalled from requirements.txt in the image)
+python/venv
+python/__pycache__
+**/__pycache__
+*.pyc
+
+# Windows exiftool build — the image installs exiftool via apt instead
+exiftool-13.59_64
+
+# Runtime data (mounted as a volume; should not be baked into the image)
+uploads
+upload
+images
+
+# Dev / VCS
+.git
+.gitignore
+*.md
+.vscode
+.idea
+npm-debug.log
