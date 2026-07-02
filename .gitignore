@@ -9,9 +9,9 @@ uploads/
 upload/
 
 # large binaries — distribute separately if needed
-exiftool-13.59_64/
+# exiftool-13.59_64/
 # keep the model checkpoint out of git (351 MB); ship it with the deploy
-python/model/*.pth
+# python/model/*.pth
 
 .vscode/
 .idea/
