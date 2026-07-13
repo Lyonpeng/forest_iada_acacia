@@ -1,29 +1,76 @@
 <html>
 <head>
-    <title>Acacia Inference &amp; Geolocation</title>
+    <title>Acacia Aerial Tree Detection</title>
+    <link rel="icon" type="image/svg+xml" href="./favicon.svg">
 
     <link rel="stylesheet"
           href="https://cdnjs.cloudflare.com/ajax/libs/dropzone/5.9.3/dropzone.min.css">
+    <link rel="preconnect" href="https://fonts.googleapis.com">
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+    <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&display=swap" rel="stylesheet">
 
     <style>
+        /* ── IADA dashboard theme (dark gray-950 + teal) ─────────────── */
         body {
-            font-family: Arial;
-            margin: 20px;
+            font-family: 'Inter', 'Segoe UI', system-ui, Arial, sans-serif;
+            margin: 0;
+            background: #030712;
+            color: #e5e7eb;
+        }
+        /* faint teal wash at the top, like the landing page */
+        body::before {
+            content: "";
+            position: fixed; inset: 0; z-index: -1; pointer-events: none;
+            background: radial-gradient(120% 90% at 50% -10%, rgba(20,184,166,0.08), rgba(3,7,18,0) 55%);
         }
 
+        /* ── top bar (matches the other dashboards' 56px IADA bar) ───── */
+        #hdr {
+            position: fixed; top: 0; left: 0; right: 0; z-index: 100;
+            height: 56px;
+            display: flex; align-items: center;
+            gap: 12px; padding: 0 16px;
+            background: rgba(3, 7, 18, 0.85);
+            border-bottom: 1px solid rgba(31, 41, 55, 0.7);
+            backdrop-filter: blur(12px);
+        }
+        #hdr .iada-title { font-size: .9rem; font-weight: 600; color: #e5e7eb; line-height: 1.1; }
+        #hdr .iada-sub   { font-size: .6rem; color: #6b7280; margin-top: 1px; }
+        #hdr .spacer     { flex: 1; }
+        .iada-navlink {
+            border-radius: 6px; padding: 4px 11px;
+            font-size: .72rem; font-weight: 500; color: #d1d5db;
+            border: 1px solid #1f2937; background: transparent;
+            text-decoration: none; cursor: pointer; transition: all .15s;
+            font-family: inherit;
+        }
+        .iada-navlink:hover { color: #5eead4; border-color: rgba(20,184,166,.45); }
+
+        main { padding: 76px 20px 28px; }
+
         .dropzone {
-            border: 2px dashed #0087F7;
+            border: 2px dashed rgba(20, 184, 166, 0.35);
             border-radius: 10px;
             padding: 20px;
-            background: #fafafa;
+            background: rgba(3, 7, 18, 0.4);
             min-height: 150px;
         }
+        .dropzone:hover { border-color: rgba(20, 184, 166, 0.6); }
+        .dropzone .dz-message { color: #9ca3af; }
+        .dropzone .dz-preview .dz-image { background: #1f2937; }
+        .dropzone .dz-preview .dz-details { color: #e5e7eb; }
+        .dropzone .dz-preview .dz-details .dz-filename span,
+        .dropzone .dz-preview .dz-details .dz-size span {
+            background: rgba(3, 7, 18, 0.6); color: #e5e7eb;
+        }
+        .dropzone a.dz-remove { color: #5eead4 !important; }
+
         .process-box {
             margin-top: 20px;
-            padding: 10px;
-            border: 1px solid #ccc;
-            border-radius: 5px;
-            background: #f9f9f9;
+            padding: 14px;
+            border: 1px solid rgba(31, 41, 55, 0.7);
+            border-radius: 12px;
+            background: rgba(17, 24, 39, 0.55);
         }
 
         button {
@@ -32,17 +79,11 @@
             cursor: pointer;
         }
 
-        .app-title {
-            margin: 0 0 16px 0;
-            font-size: 24px;
-            color: #0087F7;
-        }
-
         /* tabs */
         .tabs {
             display: flex;
             gap: 4px;
-            border-bottom: 2px solid #e0e0e0;
+            border-bottom: 2px solid #1f2937;
             margin-bottom: 20px;
         }
         .tab-btn {
@@ -54,15 +95,16 @@
             margin-bottom: -2px;
             cursor: pointer;
             font-size: 15px;
-            color: #666;
+            color: #9ca3af;
+            font-family: inherit;
         }
         .tab-btn:hover {
-            color: #0087F7;
+            color: #5eead4;
         }
         .tab-btn.active {
-            color: #0087F7;
-            border-bottom-color: #0087F7;
-            font-weight: bold;
+            color: #5eead4;
+            border-bottom-color: #14b8a6;
+            font-weight: 600;
         }
         .tab-panel {
             display: none;
@@ -75,21 +117,25 @@
         .setup-box {
             max-width: 700px;
             padding: 20px;
-            border: 1px solid #e0e0e0;
-            border-radius: 8px;
-            background: #fff;
+            border: 1px solid rgba(31, 41, 55, 0.7);
+            border-radius: 12px;
+            background: rgba(17, 24, 39, 0.55);
         }
         .setup-box h2 {
             margin-top: 0;
         }
         .setup-intro {
-            color: #666;
+            color: #9ca3af;
             margin-top: 0;
             margin-bottom: 20px;
         }
         .field-label {
             display: block;
-            font-weight: bold;
+            font-weight: 600;
+            font-size: .8rem;
+            text-transform: uppercase;
+            letter-spacing: .05em;
+            color: #9ca3af;
             margin-bottom: 6px;
         }
         .batch-input {
@@ -97,31 +143,36 @@
             box-sizing: border-box;
             padding: 10px;
             margin-bottom: 18px;
-            border: 1px solid #ccc;
-            border-radius: 5px;
+            border: 1px solid #374151;
+            border-radius: 6px;
             font-size: 14px;
+            background: rgba(3, 7, 18, 0.5);
+            color: #e5e7eb;
+            font-family: inherit;
         }
+        .batch-input::placeholder { color: #6b7280; }
         .batch-input:focus {
             outline: none;
-            border-color: #0087F7;
+            border-color: #14b8a6;
         }
-        /* run inference button, right aligned + blue */
+        /* run inference button, right aligned + teal */
         .run-row {
             display: flex;
             justify-content: flex-end;
             margin-top: 16px;
         }
         #uploadBtn {
-            background: #0087F7;
+            background: linear-gradient(to top, #0d9488, #14b8a6);
             color: #fff;
             border: none;
-            border-radius: 5px;
+            border-radius: 6px;
             padding: 10px 24px;
             font-size: 14px;
-            font-weight: bold;
+            font-weight: 600;
+            font-family: inherit;
         }
         #uploadBtn:hover {
-            background: #0072d6;
+            background: linear-gradient(to top, #0f766e, #0d9488);
         }
 
         /* 🚨 FIX: hide progress BEFORE upload starts */
@@ -149,6 +200,20 @@
             table-layout: fixed;
         }
 
+        #process-table th {
+            font-size: .72rem;
+            text-transform: uppercase;
+            letter-spacing: .05em;
+            color: #9ca3af;
+            border-bottom: 1px solid #1f2937;
+            padding: 8px 6px;
+        }
+        #process-table td {
+            padding: 10px 6px;
+            border-bottom: 1px solid rgba(31, 41, 55, 0.5);
+            color: #d1d5db;
+        }
+
         /* center every cell in the processing table */
         #process-table th,
         #process-table td {
@@ -160,7 +225,7 @@
 
         /* error status in the processing table */
         .status-error {
-            color: #c0392b;
+            color: #f87171;
             font-weight: bold;
             cursor: help;
         }
@@ -170,13 +235,13 @@
             display: inline-flex;
             align-items: center;
             gap: 8px;
-            color: #666;
+            color: #9ca3af;
         }
         .spinner {
             width: 14px;
             height: 14px;
-            border: 2px solid #d0d0d0;
-            border-top-color: #0087F7;
+            border: 2px solid #374151;
+            border-top-color: #14b8a6;
             border-radius: 50%;
             animation: spin 0.7s linear infinite;
         }
@@ -192,14 +257,17 @@
         .action-btn {
             margin: 0;
             padding: 4px 12px;
-            background: #fff;
-            border: 1px solid #ccc;
-            border-radius: 4px;
+            background: #111827;
+            border: 1px solid #374151;
+            border-radius: 6px;
             cursor: pointer;
             font-size: 13px;
+            color: #d1d5db;
+            font-family: inherit;
         }
         .action-btn:hover {
-            background: #f0f0f0;
+            border-color: rgba(20, 184, 166, 0.45);
+            color: #5eead4;
         }
         .action-dropdown {
             display: none;
@@ -207,10 +275,10 @@
             right: 0;
             margin-top: 4px;
             min-width: 120px;
-            background: #fff;
-            border: 1px solid #ccc;
-            border-radius: 4px;
-            box-shadow: 0 2px 8px rgba(0, 0, 0, 0.15);
+            background: #111827;
+            border: 1px solid #374151;
+            border-radius: 6px;
+            box-shadow: 0 4px 14px rgba(0, 0, 0, 0.5);
             overflow: hidden;
             z-index: 10;
         }
@@ -223,27 +291,73 @@
             padding: 8px 14px;
             text-align: left;
             text-decoration: none;
-            color: #333;
+            color: #d1d5db;
             font-size: 13px;
         }
         .action-dropdown a:hover {
-            background: #f0f0f0;
+            background: #1f2937;
+            color: #5eead4;
         }
         .action-dropdown a.danger {
-            color: #c0392b;
+            color: #f87171;
         }
         .action-dropdown a.danger:hover {
-            background: #fdecea;
+            background: rgba(248, 113, 113, 0.12);
+            color: #f87171;
         }
         .action-dropdown .disabled {
-            color: #bbb;
+            color: #6b7280;
             cursor: not-allowed;
+        }
+
+        /* about modal */
+        #about-overlay {
+            display: none;
+            position: fixed; inset: 0; z-index: 200;
+            background: rgba(3, 7, 18, 0.75);
+            align-items: center; justify-content: center;
+            padding: 12px;
+        }
+        .about-card {
+            max-width: 460px;
+            background: #0b1120;
+            border: 1px solid rgba(31, 41, 55, 0.9);
+            border-radius: 12px;
+            padding: 22px;
+        }
+        .about-card h3 { margin: 0 0 10px 0; color: #e5e7eb; }
+        .about-card p { color: #9ca3af; font-size: .86rem; line-height: 1.5; }
+        .about-card .about-dim { color: #6b7280; font-size: .74rem; }
+
+        /* mobile: keep the 56px bar on one row */
+        @media (max-width: 640px) {
+            #hdr { gap: 8px; padding: 0 10px; }
+            #hdr .iada-sub { display: none; }
+            .iada-navlink { padding: 4px 8px; font-size: .66rem; }
+            main { padding: 72px 12px 20px; }
+            .about-card { max-width: calc(100vw - 24px); }
         }
     </style>
 </head>
 
 <body>
 
+<!-- IADA TOP BAR -->
+<div id="hdr">
+    <a href="http://10.1.7.26:8083/" style="display:flex;align-items:center;flex-shrink:0;text-decoration:none;">
+        <img src="iada-logo-onbg.png" alt="IADA" style="height:28px;width:auto;">
+    </a>
+    <div style="min-width:0;">
+        <div class="iada-title">Acacia Aerial Tree Detection</div>
+        <div class="iada-sub">UAV imagery · inference · geolocation</div>
+    </div>
+    <div class="spacer"></div>
+    <a class="iada-navlink" href="http://10.1.7.26:8083/">← Dashboards</a>
+    <button class="iada-navlink" type="button"
+            onclick="document.getElementById('about-overlay').style.display='flex'">ⓘ About</button>
+</div>
+
+<main>
 
 <!-- TAB BAR -->
 <div class="tabs">
@@ -288,6 +402,22 @@
             </thead>
             <tbody></tbody>
         </table>
+    </div>
+</div>
+
+</main>
+
+<!-- ABOUT MODAL -->
+<div id="about-overlay" onclick="if (event.target === this) this.style.display = 'none'">
+    <div class="about-card">
+        <h3>Acacia Aerial Tree Detection</h3>
+        <p>Upload batches of UAV aerial images, run the deep-learning Acacia
+           detector over them, and view every detection geolocated on a 3D globe
+           alongside the annotated imagery.</p>
+        <p class="about-dim">GPU inference on the IADA HPC pool · GPS read from image
+           metadata · Part of the IADA Forest Monitoring dashboards.</p>
+        <button class="iada-navlink" type="button"
+                onclick="document.getElementById('about-overlay').style.display='none'">Close</button>
     </div>
 </div>
 
