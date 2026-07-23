@@ -1,4 +1,5 @@
 import os
+import csv
 import shutil
 import json
 import random
@@ -73,6 +74,39 @@ def write_metadata_csv(image_paths, output_file):
     # exiftool emits CRLF rows; newline="" keeps them clean across platforms
     with open(output_file, "w", encoding="utf-8", newline="") as f:
         f.write(result.stdout)
+
+    return output_file
+
+
+def write_gimbal_flight_csv(image_paths, output_file):
+    """
+    Extract the gimbal degrees (Yaw, Pitch, Roll), flight degrees
+    (Yaw, Pitch, Roll) and image path for every given image using exiftool,
+    and write them into a single CSV file (one row per image).
+    """
+    if not image_paths:
+        return None
+
+    fieldnames = [
+        "ImagePath",
+        "GimbalYawDegree", "GimbalPitchDegree", "GimbalRollDegree",
+        "FlightYawDegree", "FlightPitchDegree", "FlightRollDegree",
+    ]
+
+    with open(output_file, "w", encoding="utf-8", newline="") as f:
+        writer = csv.DictWriter(f, fieldnames=fieldnames)
+        writer.writeheader()
+        for image_path in image_paths:
+            meta = read_metadata_exiftool(image_path)
+            writer.writerow({
+                "ImagePath": image_path,
+                "GimbalYawDegree": meta.get("GimbalYawDegree"),
+                "GimbalPitchDegree": meta.get("GimbalPitchDegree"),
+                "GimbalRollDegree": meta.get("GimbalRollDegree"),
+                "FlightYawDegree": meta.get("FlightYawDegree"),
+                "FlightPitchDegree": meta.get("FlightPitchDegree"),
+                "FlightRollDegree": meta.get("FlightRollDegree"),
+            })
 
     return output_file
 

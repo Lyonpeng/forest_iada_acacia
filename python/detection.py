@@ -6,7 +6,7 @@ from PIL.ExifTags import TAGS
 import re
 import torchvision.transforms as T
 import torch
-from util_2 import get_model_mask, read_metadata_exiftool, write_metadata_csv
+from util_2 import get_model_mask, read_metadata_exiftool, write_metadata_csv, write_gimbal_flight_csv
 import numpy as np
 import cv2
 import matplotlib.pyplot as plt
@@ -64,13 +64,18 @@ def export_mask_gps_to_kml(mask_gps, output_folder="results", output_filename="c
 
 # # Image_detection("images/test5/test_set/5.jpg", model,device,0.6)
 class Image_detection:
-    def __init__(self, image_path, model, device, threshold):
+    def __init__(self, image_path, model, device, threshold,
+                 yaw_source="gimbal", sensor_width_mm=17.3):
         self.path=image_path
         self.device=device
         self.score_threshold=threshold
         self.model=model
-        # self.sensor_width = 0.0064   # DJI Mavic (6.4 mm)
-        self.sensor_width = 0.0173     # DJI Zenmuse L2 (17.3 mm)
+        # ---- customisable set-up (comes from the front end) ----
+        # which orientation to use for the yaw rotation: "gimbal" or "flight"
+        self.yaw_source = "flight" if str(yaw_source).lower() == "flight" else "gimbal"
+        # sensor width supplied in millimetres (e.g. 17.3 for DJI Zenmuse L2,
+        # 6.4 for DJI Mavic); stored in metres to match the GSD formula
+        self.sensor_width = float(sensor_width_mm) / 1000.0
         self.width=None
         self.boxes = []
         self.labels = []
@@ -101,56 +106,6 @@ class Image_detection:
         return (d, m, s)
 
     def parse_metadata(self):
-        # -------------------------------------------------------------------
-        # OLD: metadata read with PIL EXIF (_getexif). Commented out and
-        # replaced by the exiftool-based parsing below.
-        # -------------------------------------------------------------------
-        # image = Image.open(self.path)
-        # exif_data = image._getexif()
-        # print("here")
-        # if exif_data:
-        #     for i in range(1,5):
-        #         self.gps.append(exif_data[34853][i]) #GPS
-        #     self.gps.append(exif_data[34853][6])
-        #     self.focal_length=exif_data[37386]
-        #     self.image_width, self.image_height = image.size
-        #     # self.image_width=exif_data[256]
-        #     # self.image_height=exif_data[257]
-        #     altitude = float(self.gps[4])       # meters
-        #     # altitude = float(self.gps[4])-float(53)         # meters
-        #     focal_m = float(self.focal_length) / 1000  # mm → meters
-        #
-        #     self.gsd = (altitude * self.sensor_width) / (focal_m * self.image_width)
-        #     print(f"focal length: {focal_m}")
-        #     print(f"gsd: {self.gsd} m/pixel")
-        #
-        #     # gsd = gps[4] * sensor_width/focal_length * width
-        #     # self.gsd = (self.gps[4] * self.sensor_width) / (self.focal_length * self.image_width)
-        #     makernote=exif_data[37500]
-        #     makernote_str = makernote.decode('utf-8', errors='ignore')
-        #
-        #     gimbal_match = re.search(r'GimbalDegree\(Y,P,R\):(-?\d+),(-?\d+),(-?\d+)', makernote_str)
-        #     if gimbal_match:
-        #         gimbal_y, gimbal_p, gimbal_r = map(int, gimbal_match.groups())
-        #         self.gimbal=(gimbal_y, gimbal_p, gimbal_r)
-        #         # print("Gimbal Degrees:", gimbal_y, gimbal_p, gimbal_r)
-        #         #Yaw, Pitch, Roll
-        #     else:
-        #         print("No gimbal")
-        #     # Extract Flight
-        #     # flight_match = re.search(r'FlightDegree\(Y,P,R\):-([\d\-]+),([\d\-]+),([\d\-]+)', makernote_str)
-        #     flight_match = re.search(r'FlightDegree\(Y,P,R\):(-?\d+),(-?\d+),(-?\d+)', makernote_str)
-        #     if flight_match:
-        #         flight_y, flight_p, flight_r = map(int, flight_match.groups())
-        #         self.flight_orientation=(flight_y, flight_p, flight_r)
-        #         # print("Flight Degrees:", flight_y, flight_p, flight_r)
-        #     else:
-        #         print("No flight degrees")
-        # else:
-        #     print("No metadata available")
-        # -------------------------------------------------------------------
-
-        # NEW: metadata read with exiftool (subprocess)
         meta = read_metadata_exiftool(self.path)
 
         # GSD / geolocation need GPS plus camera intrinsics; bail out if missing
@@ -280,14 +235,16 @@ class Image_detection:
         meters_per_deg_lat = 111320.0
         meters_per_deg_lon = 111320.0 * math.cos(math.radians(lat_center))
 
-        if self.gimbal is not None:
-            g_yaw = self.gimbal[0] / 10.0
-            if g_yaw < 0:
-                n_yaw = abs(g_yaw)
+        # pick the yaw source chosen in the front-end set-up
+        yaw_tuple = self.flight_orientation if self.yaw_source == "flight" else self.gimbal
+        if yaw_tuple is not None:
+            raw_yaw = yaw_tuple[0] / 10.0
+            if raw_yaw < 0:
+                n_yaw = abs(raw_yaw)
             else:
-                n_yaw = 360 - g_yaw
+                n_yaw = 360 - raw_yaw
         else:
-            raise ValueError("Gimbal data not available for yaw calculation")
+            raise ValueError(f"{self.yaw_source} yaw data not available for yaw calculation")
 
         dx = x - img_center_x
         dy = y - img_center_y
@@ -416,82 +373,149 @@ class Image_detection:
 
         print(f"CSV saved to: {csv_path}")
 import json
-def tracker(batch_folder, batch_id, total_images, processed_images, error=None):
-    """
-    Save batch status into JSON file.
-    If `error` is provided, the batch is marked as failed and the message is stored.
-    """
 
+# def tracker(batch_folder, batch_id, total_images, processed_images, error=None):
+#     """
+#     Save batch status into JSON file.
+#     If `error` is provided, the batch is marked as failed and the message is stored.
+#     """
+
+#     status_file = os.path.join(batch_folder, "status.json")
+
+#     progress = int((processed_images / total_images) * 100) if total_images > 0 else 0
+
+#     if error is not None:
+#         status = "error"
+#     elif processed_images < total_images:
+#         status = "processing"
+#     else:
+#         status = "completed"
+
+#     data = {
+#         "batchId": batch_id,
+#         "status": status,
+#         "total": total_images,
+#         "processed": processed_images,
+#         "progress": progress,
+#         "error": str(error) if error is not None else None
+#     }
+
+#     with open(status_file, "w") as f:
+#         json.dump(data, f, indent=4)
+
+#     if error is not None:
+#         print(f"[TRACKER] ERROR: {error}")
+#     else:
+#         print(f"[TRACKER] {processed_images}/{total_images} ({progress}%)")
+def tracker(
+    status,
+    batch_folder="",
+    batch_id="",
+    total_images="",
+    processed_images="",
+    error=""
+):
     status_file = os.path.join(batch_folder, "status.json")
 
-    progress = int((processed_images / total_images) * 100) if total_images > 0 else 0
+    # preserve the creation time the Node server seeded into status.json, so it
+    # survives these rewrites and keeps showing in the result table
+    time_value = ""
+    try:
+        if os.path.exists(status_file):
+            with open(status_file, "r") as f:
+                time_value = json.load(f).get("time", "")
+    except Exception:
+        time_value = ""
 
-    if error is not None:
-        status = "error"
-    elif processed_images < total_images:
-        status = "processing"
+    if (
+        isinstance(total_images, int)
+        and isinstance(processed_images, int)
+        and total_images > 0
+    ):
+        progress = int(processed_images / total_images * 100)
     else:
-        status = "completed"
+        progress = 0
 
     data = {
         "batchId": batch_id,
         "status": status,
+        "time": time_value,
         "total": total_images,
         "processed": processed_images,
         "progress": progress,
-        "error": str(error) if error is not None else None
+        "error": error
     }
 
     with open(status_file, "w") as f:
         json.dump(data, f, indent=4)
 
-    if error is not None:
-        print(f"[TRACKER] ERROR: {error}")
-    else:
-        print(f"[TRACKER] {processed_images}/{total_images} ({progress}%)")
 
-device = torch.device("cuda" if torch.cuda.is_available() else "cpu")
-# model path relative to this script (project_root/python/model/...)
-model_A = os.path.join(os.path.dirname(__file__), "model", "checkpoint_epoch_20_nogamma.pth")
-checkpoint = torch.load(model_A, map_location=device)
-model=get_model_mask(2,True)
-model.load_state_dict(checkpoint["model_state_dict"])
-model.to(device)
-model.eval()
 if __name__ == "__main__":
-    batch_id = sys.argv[1] if len(sys.argv) > 1 else None
-    if batch_id is None:
-        raise ValueError("Missing batchId argument")
 
-    print("Running inference for batch:", batch_id)
-    mask_gps = []
-    all_detections = []
-    # uploads dir relative to this script (project_root/uploads/<batch_id>)
+    batch_id = sys.argv[1] if len(sys.argv) > 1 else None
     batch_folder = os.path.join(os.path.dirname(__file__), "..", "uploads", batch_id)
     batch_folder = os.path.normpath(batch_folder)
-    import glob
-    images = glob.glob(batch_folder + "/*")
-    visual_folder = os.path.join(batch_folder, "visuals")
-    os.makedirs(visual_folder, exist_ok=True)
-
-    # dump exiftool metadata for every image in this batch into one csv file
-    image_files = [
-        p for p in images
-        if os.path.splitext(p)[1].lower() in (".jpg", ".jpeg", ".png", ".webp")
-    ]
-    metadata_path = write_metadata_csv(
-        image_files,
-        os.path.join(batch_folder, "metadata.csv")
-    )
-    print(f"Metadata saved to: {metadata_path}")
-
-    total_images = len(images)
-    processed_images = 0
-    tracker(batch_folder, batch_id, total_images, processed_images)
+    # initialise the batch's status.json with the processing state
+    tracker("processing", batch_folder, batch_id)
     try:
-        for img_path in images:
+        device = torch.device("cuda" if torch.cuda.is_available() else "cpu")
+        # model path relative to this script (project_root/python/model/...)
+        model_A = os.path.join(os.path.dirname(__file__), "model", "checkpoint_epoch_20_nogamma.pth")
+        checkpoint = torch.load(model_A, map_location=device)
+        model=get_model_mask(2,True)
+        model.load_state_dict(checkpoint["model_state_dict"])
+        model.to(device)
+        model.eval()
+        # customisation passed from the front-end set-up
+        # argv[2]: yaw source ("gimbal" or "flight"); argv[3]: sensor width in mm
+        yaw_source = sys.argv[2] if len(sys.argv) > 2 else "gimbal"
+        try:
+            sensor_width_mm = float(sys.argv[3]) if len(sys.argv) > 3 else 17.3
+        except ValueError:
+            sensor_width_mm = 17.3
+
+        print("Running inference for batch:", batch_id)
+        print(f"Yaw source: {yaw_source} | Sensor width: {sensor_width_mm} mm")
+        mask_gps = []
+        all_detections = []
+        # uploads dir relative to this script (project_root/uploads/<batch_id>)
+        batch_folder = os.path.join(os.path.dirname(__file__), "..", "uploads", batch_id)
+        batch_folder = os.path.normpath(batch_folder)
+        import glob
+        images = glob.glob(batch_folder + "/*")
+        visual_folder = os.path.join(batch_folder, "visuals")
+        os.makedirs(visual_folder, exist_ok=True)
+
+        # dump exiftool metadata for every image in this batch into one csv file
+        image_files = [
+            p for p in images
+            if os.path.splitext(p)[1].lower() in (".jpg", ".jpeg", ".png", ".webp")
+        ]
+        metadata_path = write_metadata_csv(
+            image_files,
+            os.path.join(batch_folder, "metadata.csv")
+        )
+        print(f"Metadata saved to: {metadata_path}")
+
+        # dump gimbal degrees, flight degrees and image path into their own csv
+        gimbal_flight_path = write_gimbal_flight_csv(
+            image_files,
+            os.path.join(batch_folder, "gimbal_and_flight.csv")
+        )
+        print(f"Gimbal & flight degrees saved to: {gimbal_flight_path}")
+
+        # iterate the extension-filtered list, not the raw glob — the batch
+        # folder also holds status.json / metadata.csv / visuals, which are
+        # not images and would crash Image.open()
+        total_images = len(image_files)
+        processed_images = 0
+        tracker("processing", batch_folder, batch_id, total_images, processed_images)
+
+        for img_path in image_files:
             print("Processing:", img_path)
-            det = Image_detection(img_path, model, device, 0.6)
+            det = Image_detection(img_path, model, device, 0.6,
+                                yaw_source=yaw_source,
+                                sensor_width_mm=sensor_width_mm)
             all_detections.append(det)
             mask_gps.append(det.geopolygon)
             fig = det.visualise()
@@ -504,6 +528,7 @@ if __name__ == "__main__":
             plt.close(fig)
             processed_images += 1
             tracker(
+                "processing",
                 batch_folder,
                 batch_id,
                 total_images,
@@ -524,10 +549,9 @@ if __name__ == "__main__":
         import traceback
         traceback.print_exc()
         tracker(
-            batch_folder,
-            batch_id,
-            total_images,
-            processed_images,
+            status="error",
+            batch_folder=batch_folder,
+            batch_id=batch_id,
             error=traceback.format_exc()
         )
         sys.exit(1)

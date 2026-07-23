@@ -1,0 +1,24 @@
+services:
+  web_server:
+    image: nginx:latest
+    ports:
+      - "3000:3000"
+  app:
+    build: .
+    image: acacia-inference
+    ports:
+      - "3000:3000"
+    environment:
+      - PORT=3000
+    volumes:
+      # persist uploaded batches + results outside the container
+      - ./uploads:/app/uploads
+    # NVIDIA GPU access (requires nvidia-container-toolkit on the host)
+    deploy:
+      resources:
+        reservations:
+          devices:
+            - driver: nvidia
+              count: all
+              capabilities: [gpu]
+    restart: unless-stopped

@@ -7,6 +7,9 @@ python/venv/
 images/
 uploads/
 upload/
+Validation_note.xlsx
+yaml_update.txt
+/status.json   # stray root file if detection.py ever writes without a batch folder
 
 # large binaries — distribute separately if needed
 # exiftool-13.59_64/

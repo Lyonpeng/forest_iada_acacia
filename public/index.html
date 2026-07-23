@@ -8,336 +8,7 @@
     <link rel="preconnect" href="https://fonts.googleapis.com">
     <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
     <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&display=swap" rel="stylesheet">
-
-    <style>
-        /* ── IADA dashboard theme (dark gray-950 + teal) ─────────────── */
-        body {
-            font-family: 'Inter', 'Segoe UI', system-ui, Arial, sans-serif;
-            margin: 0;
-            background: #030712;
-            color: #e5e7eb;
-        }
-        /* faint teal wash at the top, like the landing page */
-        body::before {
-            content: "";
-            position: fixed; inset: 0; z-index: -1; pointer-events: none;
-            background: radial-gradient(120% 90% at 50% -10%, rgba(20,184,166,0.08), rgba(3,7,18,0) 55%);
-        }
-
-        /* ── top bar (matches the other dashboards' 56px IADA bar) ───── */
-        #hdr {
-            position: fixed; top: 0; left: 0; right: 0; z-index: 100;
-            height: 56px;
-            display: flex; align-items: center;
-            gap: 12px; padding: 0 16px;
-            background: rgba(3, 7, 18, 0.85);
-            border-bottom: 1px solid rgba(31, 41, 55, 0.7);
-            backdrop-filter: blur(12px);
-        }
-        #hdr .iada-title { font-size: .9rem; font-weight: 600; color: #e5e7eb; line-height: 1.1; }
-        #hdr .iada-sub   { font-size: .6rem; color: #6b7280; margin-top: 1px; }
-        #hdr .spacer     { flex: 1; }
-        .iada-navlink {
-            border-radius: 6px; padding: 4px 11px;
-            font-size: .72rem; font-weight: 500; color: #d1d5db;
-            border: 1px solid #1f2937; background: transparent;
-            text-decoration: none; cursor: pointer; transition: all .15s;
-            font-family: inherit;
-        }
-        .iada-navlink:hover { color: #5eead4; border-color: rgba(20,184,166,.45); }
-
-        main { padding: 76px 20px 28px; }
-
-        .dropzone {
-            border: 2px dashed rgba(20, 184, 166, 0.35);
-            border-radius: 10px;
-            padding: 20px;
-            background: rgba(3, 7, 18, 0.4);
-            min-height: 150px;
-        }
-        .dropzone:hover { border-color: rgba(20, 184, 166, 0.6); }
-        .dropzone .dz-message { color: #9ca3af; }
-        .dropzone .dz-preview .dz-image { background: #1f2937; }
-        .dropzone .dz-preview .dz-details { color: #e5e7eb; }
-        .dropzone .dz-preview .dz-details .dz-filename span,
-        .dropzone .dz-preview .dz-details .dz-size span {
-            background: rgba(3, 7, 18, 0.6); color: #e5e7eb;
-        }
-        .dropzone a.dz-remove { color: #5eead4 !important; }
-
-        .process-box {
-            margin-top: 20px;
-            padding: 14px;
-            border: 1px solid rgba(31, 41, 55, 0.7);
-            border-radius: 12px;
-            background: rgba(17, 24, 39, 0.55);
-        }
-
-        button {
-            margin-top: 10px;
-            padding: 10px;
-            cursor: pointer;
-        }
-
-        /* tabs */
-        .tabs {
-            display: flex;
-            gap: 4px;
-            border-bottom: 2px solid #1f2937;
-            margin-bottom: 20px;
-        }
-        .tab-btn {
-            margin: 0;
-            padding: 10px 22px;
-            background: none;
-            border: none;
-            border-bottom: 2px solid transparent;
-            margin-bottom: -2px;
-            cursor: pointer;
-            font-size: 15px;
-            color: #9ca3af;
-            font-family: inherit;
-        }
-        .tab-btn:hover {
-            color: #5eead4;
-        }
-        .tab-btn.active {
-            color: #5eead4;
-            border-bottom-color: #14b8a6;
-            font-weight: 600;
-        }
-        .tab-panel {
-            display: none;
-        }
-        .tab-panel.active {
-            display: block;
-        }
-
-        /* setup / upload card */
-        .setup-box {
-            max-width: 700px;
-            padding: 20px;
-            border: 1px solid rgba(31, 41, 55, 0.7);
-            border-radius: 12px;
-            background: rgba(17, 24, 39, 0.55);
-        }
-        .setup-box h2 {
-            margin-top: 0;
-        }
-        .setup-intro {
-            color: #9ca3af;
-            margin-top: 0;
-            margin-bottom: 20px;
-        }
-        .field-label {
-            display: block;
-            font-weight: 600;
-            font-size: .8rem;
-            text-transform: uppercase;
-            letter-spacing: .05em;
-            color: #9ca3af;
-            margin-bottom: 6px;
-        }
-        .batch-input {
-            width: 100%;
-            box-sizing: border-box;
-            padding: 10px;
-            margin-bottom: 18px;
-            border: 1px solid #374151;
-            border-radius: 6px;
-            font-size: 14px;
-            background: rgba(3, 7, 18, 0.5);
-            color: #e5e7eb;
-            font-family: inherit;
-        }
-        .batch-input::placeholder { color: #6b7280; }
-        .batch-input:focus {
-            outline: none;
-            border-color: #14b8a6;
-        }
-        /* run inference button, right aligned + teal */
-        .run-row {
-            display: flex;
-            justify-content: flex-end;
-            margin-top: 16px;
-        }
-        #uploadBtn {
-            background: linear-gradient(to top, #0d9488, #14b8a6);
-            color: #fff;
-            border: none;
-            border-radius: 6px;
-            padding: 10px 24px;
-            font-size: 14px;
-            font-weight: 600;
-            font-family: inherit;
-        }
-        #uploadBtn:hover {
-            background: linear-gradient(to top, #0f766e, #0d9488);
-        }
-
-        /* 🚨 FIX: hide progress BEFORE upload starts */
-        .dz-progress {
-            display: none !important;
-        }
-
-        /* show progress only when uploading */
-        .dz-processing .dz-progress {
-            display: block !important;
-        }
-
-        /* stretch preview image to fill the entire box (no crop, no letterbox) */
-        .dz-image img {
-            width: 100% !important;
-            height: 100% !important;
-            object-fit: fill !important;
-        }
-
-        /* table fills the window but never grows past a max width */
-        #process-table {
-            width: 100%;
-            max-width: 900px;
-            border-collapse: collapse;
-            table-layout: fixed;
-        }
-
-        #process-table th {
-            font-size: .72rem;
-            text-transform: uppercase;
-            letter-spacing: .05em;
-            color: #9ca3af;
-            border-bottom: 1px solid #1f2937;
-            padding: 8px 6px;
-        }
-        #process-table td {
-            padding: 10px 6px;
-            border-bottom: 1px solid rgba(31, 41, 55, 0.5);
-            color: #d1d5db;
-        }
-
-        /* center every cell in the processing table */
-        #process-table th,
-        #process-table td {
-            text-align: center;
-            vertical-align: middle;
-            word-wrap: break-word;
-            overflow-wrap: break-word;
-        }
-
-        /* error status in the processing table */
-        .status-error {
-            color: #f87171;
-            font-weight: bold;
-            cursor: help;
-        }
-
-        /* "starting inference" loading state */
-        .status-loading {
-            display: inline-flex;
-            align-items: center;
-            gap: 8px;
-            color: #9ca3af;
-        }
-        .spinner {
-            width: 14px;
-            height: 14px;
-            border: 2px solid #374151;
-            border-top-color: #14b8a6;
-            border-radius: 50%;
-            animation: spin 0.7s linear infinite;
-        }
-        @keyframes spin {
-            to { transform: rotate(360deg); }
-        }
-
-        /* action dropdown */
-        .action-menu {
-            position: relative;
-            display: inline-block;
-        }
-        .action-btn {
-            margin: 0;
-            padding: 4px 12px;
-            background: #111827;
-            border: 1px solid #374151;
-            border-radius: 6px;
-            cursor: pointer;
-            font-size: 13px;
-            color: #d1d5db;
-            font-family: inherit;
-        }
-        .action-btn:hover {
-            border-color: rgba(20, 184, 166, 0.45);
-            color: #5eead4;
-        }
-        .action-dropdown {
-            display: none;
-            position: absolute;
-            right: 0;
-            margin-top: 4px;
-            min-width: 120px;
-            background: #111827;
-            border: 1px solid #374151;
-            border-radius: 6px;
-            box-shadow: 0 4px 14px rgba(0, 0, 0, 0.5);
-            overflow: hidden;
-            z-index: 10;
-        }
-        .action-menu.open .action-dropdown {
-            display: block;
-        }
-        .action-dropdown a,
-        .action-dropdown span {
-            display: block;
-            padding: 8px 14px;
-            text-align: left;
-            text-decoration: none;
-            color: #d1d5db;
-            font-size: 13px;
-        }
-        .action-dropdown a:hover {
-            background: #1f2937;
-            color: #5eead4;
-        }
-        .action-dropdown a.danger {
-            color: #f87171;
-        }
-        .action-dropdown a.danger:hover {
-            background: rgba(248, 113, 113, 0.12);
-            color: #f87171;
-        }
-        .action-dropdown .disabled {
-            color: #6b7280;
-            cursor: not-allowed;
-        }
-
-        /* about modal */
-        #about-overlay {
-            display: none;
-            position: fixed; inset: 0; z-index: 200;
-            background: rgba(3, 7, 18, 0.75);
-            align-items: center; justify-content: center;
-            padding: 12px;
-        }
-        .about-card {
-            max-width: 460px;
-            background: #0b1120;
-            border: 1px solid rgba(31, 41, 55, 0.9);
-            border-radius: 12px;
-            padding: 22px;
-        }
-        .about-card h3 { margin: 0 0 10px 0; color: #e5e7eb; }
-        .about-card p { color: #9ca3af; font-size: .86rem; line-height: 1.5; }
-        .about-card .about-dim { color: #6b7280; font-size: .74rem; }
-
-        /* mobile: keep the 56px bar on one row */
-        @media (max-width: 640px) {
-            #hdr { gap: 8px; padding: 0 10px; }
-            #hdr .iada-sub { display: none; }
-            .iada-navlink { padding: 4px 8px; font-size: .66rem; }
-            main { padding: 72px 12px 20px; }
-            .about-card { max-width: calc(100vw - 24px); }
-        }
-    </style>
+    <link rel="stylesheet" href="style.css">
 </head>
 
 <body>
@@ -367,24 +38,53 @@
 
 <!-- SET UP PANEL -->
 <div id="tab-setup" class="tab-panel active">
-    <div class="setup-box">
+    <div>
+        <h2> Instruction </h2>
+        <p> 1. Prepare configuration settings for Acacia detection and geolocation </p>
+        <p> 2. Upload your image files with the correct drone metadata</p>
+        <p> *Image metadata needs to include EXIF format and includes GPS coordinates and flight orientation</p>
+        <p> 3. Click "Run" to start performing Acacia detection and geolocation</p>
+    </div>
+    <div class="setup-layout">
 
-        <!-- STEP 1: BATCH NAME -->
-        <label class="field-label" for="batchId">1. Batch name</label>
-        <input type="text" id="batchId" class="batch-input"
-               placeholder="e.g. drone_mission_001" />
+        <!-- CONFIG CARD -->
+        <div class="setup-box">
+            <h2> Configuration </h2>
 
-        <!-- STEP 2: DROPZONE -->
-        <label class="field-label" for="myDropzone">2. Aerial images</label>
-        <form id="myDropzone"
-              class="dropzone"
-              action="/upload"
-              enctype="multipart/form-data">
-        </form>
+            <!-- STEP 2: PARAMETERS -->
+            <label class="field-label" for="yawSource">Main orientation</label>
+            <select id="yawSource" class="batch-input">
+                <option value="gimbal">Gimbal yaw</option>
+                <option value="flight">Flight yaw</option>
+            </select>
 
-        <!-- STEP 3: RUN -->
-        <div class="run-row">
-            <button id="uploadBtn">Run Inference</button>
+            <label class="field-label" for="sensorWidth">Sensor width (mm)</label>
+            <input type="number" id="sensorWidth" class="batch-input"
+                   step="0.01" min="0" value="17.3"
+                   placeholder="e.g. 17.3 (DJI Zenmuse L2) or 6.4 (DJI Mavic)" />
+
+
+        </div>
+
+        <!-- IMAGE UPLOAD CARD -->
+        <div class="image-box">
+            <h2>Batch Image Upload</h2>
+            
+            <!-- STEP 1: BATCH NAME -->
+            <label class="field-label" for="batchId">Batch name</label>
+            <input type="text" id="batchId" class="batch-input"
+                   placeholder="e.g. drone_mission_001" />
+            <!-- <label class="field-label" for="myDropzone">4. Aerial images</label> -->
+            <form id="myDropzone"
+                  class="dropzone"
+                  action="/upload"
+                  enctype="multipart/form-data">
+            </form>
+            <div class="run-row">
+                
+                <button id="uploadBtn" type="button">Run</button>
+            </div>
+            <div id="upload-message"></div>
         </div>
     </div>
 </div>
@@ -396,6 +96,7 @@
             <thead>
                 <tr>
                     <th>Batch ID</th>
+                    <th>Created</th>
                     <th>Status</th>
                     <th>Action</th>
                 </tr>
@@ -422,13 +123,10 @@
 </div>
 
 <script src="https://cdnjs.cloudflare.com/ajax/libs/dropzone/5.9.3/min/dropzone.min.js"></script>
-
+<script src="https://cdn.jsdelivr.net/npm/exifr/dist/lite.umd.js"></script>
 <script>
 Dropzone.autoDiscover = false;
 
-/* -------------------------
-   TAB SWITCHING
--------------------------- */
 function showTab(name) {
     document.querySelectorAll(".tab-panel").forEach(p => p.classList.remove("active"));
     document.querySelectorAll(".tab-btn").forEach(b => b.classList.remove("active"));
@@ -462,34 +160,101 @@ const dz = new Dropzone("#myDropzone", {
     // resizeMethod: "contain"
 });
 dz.options.createImageThumbnails = true;
+// Send the queued images to the backend, which runs validate_metadata.py
+// (exiftool) against them in a temporary folder. Returns true if every image
+// has the required EXIF/DJI metadata, false (and shows the issues) otherwise.
+async function validateEXIFFiles() {
+    const yawSource = document.getElementById("yawSource").value;
 
+    const formData = new FormData();
+    formData.append("yawSource", yawSource);
+    for (const file of dz.files) {
+        formData.append("file", file, file.name);
+    }
+
+    let result;
+    try {
+        const res = await fetch("/validate", { method: "POST", body: formData });
+        result = await res.json();
+    } catch (err) {
+        console.error(err);
+        showUploadMessage("Could not reach the metadata validator.", "error");
+        return false;
+    }
+
+    if (result.ok) {
+        return true;
+    }
+
+    // build a readable, per-file message from the validator's response
+    let messages;
+    if (Array.isArray(result.issues) && result.issues.length > 0) {
+        messages = result.issues.map(item =>
+            item.missing
+                ? `${item.file}: Missing metadata ${item.missing.join(", ")}`
+                : `${item.file}: ${item.error || "Unable to read EXIF metadata."}`
+        );
+    } else {
+        messages = [result.message || "Metadata validation failed."];
+    }
+
+    showUploadMessage(messages.join("\n\n"), "error");
+    return false;
+}
 /* -------------------------
    BUTTON = START UPLOAD
 -------------------------- */
-document.getElementById("uploadBtn").addEventListener("click", () => {
+document.getElementById("uploadBtn").addEventListener("click", async () => {
 
-    if (dz.files.length === 0) {
-        alert("Please select files first");
+    clearUploadMessage();
+    const btn = document.getElementById("uploadBtn");
+
+    // batch name is required
+    const batchName = document.getElementById("batchId").value.trim();
+    if (!batchName) {
+        showUploadMessage("Please enter the name of the image batch.", "error");
         return;
     }
 
+    if (dz.files.length === 0) {
+        showUploadMessage("Please upload images before clicking Run.", "error");
+        return;
+    }
+
+    // Validate EXIF metadata (backend exiftool) before uploading anything
+    btn.disabled = true;
+    btn.textContent = "Validating...";
+    const valid = await validateEXIFFiles();
+    btn.disabled = false;
+    btn.textContent = "Run";
+
+    if (!valid) {
+        return;   // STOP upload — issues already shown to the user
+    }
+
     // Create ONE folder ID for this upload batch, based on the entered name
-    const batchName = document.getElementById("batchId").value.trim();
-    batchId = batchName || Date.now().toString();
+    batchId = batchName;
+
+    // customisation from the set-up form
+    const yawSource = document.getElementById("yawSource").value;
+    const sensorWidth = document.getElementById("sensorWidth").value;
 
     dz.processQueue();
-    showTab("result");
+    // green confirmation in the same spot as validation errors; stay on Set Up
+    showUploadMessage(`Images validated. Detection and geolocation started for "${batchId}".`, "success");
     loadBatches();
     fetch("/process", {
         method: "POST",
         headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({ batchId })
+        body: JSON.stringify({ batchId, yawSource, sensorWidth })
     }).then(res => res.json())
       .then(data => {
           loadBatches();
         });
     console.log("Batch ID:", batchId);
-
+    // btn.disabled = false;
+    // btn.textContent = "Run";
+    dz.removeAllFiles();
 });
 /* -------------------------
    SEND batchId WITH EVERY FILE
@@ -512,7 +277,6 @@ const batchRows = new Map();
 // map raw backend status values to friendlier display labels
 function statusLabel(status) {
     const labels = {
-        unknown: "starting inference",
         completed: "complete"
     };
     return labels[status] ?? status;
@@ -536,11 +300,21 @@ function openResult(batchId) {
 
 function actionCell(batch) {
     const safeId = batch.batchId.replace(/'/g, "\\'");
-    const canOpen = batch.progress == 100;
 
+    const isComplete = batch.progress == 100;
+    const isRunning = !isComplete &&
+        (batch.status === "initiating" || batch.status === "processing");
+
+    // Open only once finished, and never for an interrupted batch
+    const canOpen = isComplete && batch.status !== "interrupted";
     const openItem = canOpen
         ? `<a href="#" onclick="openResult('${safeId}'); return false;">Open</a>`
         : `<span class="disabled" title="not available">Open</span>`;
+
+    // while the detection is running, offer Interrupt in place of Delete
+    const secondItem = isRunning
+        ? `<a href="#" class="danger" onclick="interruptBatch('${safeId}'); return false;">Interrupt</a>`
+        : `<a href="#" class="danger" onclick="deleteBatch('${safeId}'); return false;">Delete</a>`;
 
     return `
         <td>
@@ -548,7 +322,7 @@ function actionCell(batch) {
                 <button class="action-btn" onclick="toggleMenu(this)">Actions &#9662;</button>
                 <div class="action-dropdown">
                     ${openItem}
-                    <a href="#" class="danger" onclick="deleteBatch('${safeId}'); return false;">Delete</a>
+                    ${secondItem}
                 </div>
             </div>
         </td>`;
@@ -557,20 +331,34 @@ function actionCell(batch) {
 function rowHtml(batch) {
     let statusCell;
     if (batch.status === "error") {
-        const msg = (batch.error ?? "Unknown error").replace(/"/g, "&quot;");
-        statusCell = `<td class="status-error" title="${msg}">error</td>`;
+        const msg = batch.error ?? "Unknown error";
+
+        statusCell = `
+            <td class="status-error">
+                <strong>Error</strong><br>
+                <small>${msg}</small>
+            </td>`;
+    } else if (batch.status === "interrupted") {
+        // user stopped the detection — show it regardless of progress
+        statusCell = `<td class="status-interrupted">interrupted</td>`;
+    } else if (batch.progress == 100) {
+        // reached 100% — treat as complete regardless of the raw status
+        // (Python leaves status as "processing" on the final tick)
+        statusCell = `<td>${statusLabel("completed")}</td>`;
     } else if (batch.status === "processing") {
         // while processing, show the progress percentage instead of the word
         statusCell = `<td>${batch.progress ?? 0}%</td>`;
-    } else if (batch.status === "unknown") {
-        // inference is starting up — show a circular loading spinner
+    } else if (batch.status === "initiating") {
+        // upload just created the batch — show a circular loading spinner
         statusCell = `<td><span class="status-loading"><span class="spinner"></span>${statusLabel(batch.status)}</span></td>`;
     } else {
+        // e.g. "unknown" (status.json missing) — plain text, no spinner
         statusCell = `<td>${statusLabel(batch.status)}</td>`;
     }
 
     return `
             <td>${batch.batchId}</td>
+            <td>${batch.time ?? ""}</td>
             ${statusCell}
             ${actionCell(batch)}`;
 }
@@ -591,6 +379,26 @@ document.addEventListener("click", (e) => {
         document.querySelectorAll(".action-menu.open").forEach(m => m.classList.remove("open"));
     }
 });
+
+async function interruptBatch(batchId) {
+
+    if (!confirm(`Interrupt batch "${batchId}"? This stops the running detection.`)) {
+        return;
+    }
+
+    const res = await fetch(`/interrupt/${encodeURIComponent(batchId)}`, {
+        method: "POST"
+    });
+
+    if (!res.ok) {
+        const data = await res.json().catch(() => ({}));
+        alert(`Failed to interrupt: ${data.message ?? res.status}`);
+        return;
+    }
+
+    // refresh so the row flips to "interrupted" and its actions update
+    loadBatches();
+}
 
 async function deleteBatch(batchId) {
 
@@ -643,12 +451,32 @@ async function loadBatches() {
 
 setInterval(loadBatches, 2000);
 
-/* -------------------------
-   DEBUG
--------------------------- */
-dz.on("addedfile", file => {
-    console.log("Added:", file.name);
-});
+
+let uploadMessages = [];
+
+
+function showUploadMessage(message, type = "error") {
+
+    uploadMessages.push(message);
+
+    const box = document.getElementById("upload-message");
+
+    box.className = type;
+    box.textContent = uploadMessages.join("\n\n");
+    box.style.display = "block";
+}
+
+
+function clearUploadMessage() {
+
+    uploadMessages = [];
+
+    const box = document.getElementById("upload-message");
+
+    box.textContent = "";
+    box.className = "";
+    box.style.display = "none";
+}
 
 dz.on("success", (file, response) => {
     console.log("Uploaded:", file.name);
