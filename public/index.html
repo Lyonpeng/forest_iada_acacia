@@ -202,59 +202,150 @@ async function validateEXIFFiles() {
     return false;
 }
 /* -------------------------
+   WAIT FOR DROPZONE UPLOAD
+-------------------------- */
+function waitForUploadComplete() {
+
+    return new Promise((resolve, reject) => {
+
+        const successHandler = () => {
+            dz.off("queuecomplete", successHandler);
+            dz.off("error", errorHandler);
+            resolve();
+        };
+
+        const errorHandler = (file, errorMessage) => {
+            dz.off("queuecomplete", successHandler);
+            dz.off("error", errorHandler);
+            reject(errorMessage);
+        };
+
+        dz.on("queuecomplete", successHandler);
+        dz.on("error", errorHandler);
+    });
+}
+/* -------------------------
    BUTTON = START UPLOAD
 -------------------------- */
 document.getElementById("uploadBtn").addEventListener("click", async () => {
-
+    disableDropzoneRemoveLinks();
     clearUploadMessage();
     const btn = document.getElementById("uploadBtn");
-
-    // batch name is required
     const batchName = document.getElementById("batchId").value.trim();
     if (!batchName) {
-        showUploadMessage("Please enter the name of the image batch.", "error");
+        showUploadMessage(
+            "Please enter the name of the image batch.",
+            "error"
+        );
         return;
     }
-
+    const uniqueBatch = await validateBatchName(batchName);
+    if (!uniqueBatch) {
+        showUploadMessage(
+            `Batch "${batchName}" already exists. Please enter another batch name.`,
+            "error"
+        );
+        return;
+    }
+    // -------------------------
+    // Check images
+    // -------------------------
     if (dz.files.length === 0) {
-        showUploadMessage("Please upload images before clicking Run.", "error");
+        showUploadMessage(
+            "Please upload images before clicking Run.",
+            "error"
+        );
         return;
     }
-
-    // Validate EXIF metadata (backend exiftool) before uploading anything
+    // -------------------------
+    // Validate metadata first
+    // -------------------------
     btn.disabled = true;
     btn.textContent = "Validating...";
+
+
     const valid = await validateEXIFFiles();
-    btn.disabled = false;
-    btn.textContent = "Run";
+
 
     if (!valid) {
-        return;   // STOP upload — issues already shown to the user
+
+        btn.disabled = false;
+        btn.textContent = "Run";
+
+        return;
     }
 
-    // Create ONE folder ID for this upload batch, based on the entered name
     batchId = batchName;
 
-    // customisation from the set-up form
-    const yawSource = document.getElementById("yawSource").value;
-    const sensorWidth = document.getElementById("sensorWidth").value;
+    const yawSource =
+        document.getElementById("yawSource").value;
 
-    dz.processQueue();
-    // green confirmation in the same spot as validation errors; stay on Set Up
-    showUploadMessage(`Images validated. Detection and geolocation started for "${batchId}".`, "success");
-    loadBatches();
-    fetch("/process", {
-        method: "POST",
-        headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({ batchId, yawSource, sensorWidth })
-    }).then(res => res.json())
-      .then(data => {
-          loadBatches();
+    const sensorWidth =
+        document.getElementById("sensorWidth").value;
+
+    btn.textContent = "Uploading...";
+
+
+    try {
+        const uploadComplete = waitForUploadComplete();
+        dz.processQueue();
+        showUploadMessage(
+            `Uploading images for "${batchId}"...`,
+            "success",
+            false
+        );
+        await uploadComplete;
+
+        // -------------------------
+        // Start inference AFTER upload
+        // -------------------------
+        btn.textContent = "Processing...";
+        showUploadMessage(
+            `Images uploaded. Detection and geolocation started for "${batchId}".`,
+            "success",
+            true
+        );
+        fetch("/process", {
+
+            method: "POST",
+
+            headers: {
+                "Content-Type": "application/json"
+            },
+
+            body: JSON.stringify({
+                batchId,
+                yawSource,
+                sensorWidth
+            })
+        })
+        .then(res => res.json())
+        .then(data => {
+
+            loadBatches();
+
         });
-    console.log("Batch ID:", batchId);
-    // btn.disabled = false;
-    // btn.textContent = "Run";
-    dz.removeAllFiles();
+        loadBatches();
+        console.log("Batch ID:", batchId);
+        // clear Dropzone preview
+        dz.removeAllFiles();
+        batchId = null;
+    }
+    catch (err) {
+
+        showUploadMessage(
+            `Upload failed: ${err}`,
+            "error"
+        );
+
+    }
+    finally {
+
+        btn.disabled = false;
+        btn.textContent = "Run";
+        enableDropzoneRemoveLinks();
+
+    }
 });
 /* -------------------------
    SEND batchId WITH EVERY FILE
@@ -270,16 +361,48 @@ dz.on("sending", function(file, xhr, formData) {
     }
 });
 const tbody = document.querySelector("#process-table tbody");
-
 // keep a reference to each batch's row so we don't re-query / rebuild every poll
 const batchRows = new Map();
+// Lock uploaded images after validation succeeds
+function disableDropzoneRemoveLinks() {
+    document.querySelector("#myDropzone")
+        .classList.add("dropzone-locked");
+}
 
+
+// Unlock images if needed (optional)
+function enableDropzoneRemoveLinks() {
+    document.querySelector("#myDropzone")
+        .classList.remove("dropzone-locked");
+}
 // map raw backend status values to friendlier display labels
 function statusLabel(status) {
     const labels = {
         completed: "complete"
     };
     return labels[status] ?? status;
+}
+async function validateBatchName(batchId) {
+    try {
+        const res = await fetch(
+            `/validate-batch/${encodeURIComponent(batchId)}`
+        );
+
+        const result = await res.json();
+
+        if (result.exists) {
+            return false;
+        }
+
+        return true;
+
+    } catch (err) {
+        showUploadMessage(
+            "Unable to validate batch name.",
+            "error"
+        );
+        return false;
+    }
 }
 
 // open result.html via POST so the batchId is sent in the body, not the URL
@@ -455,13 +578,17 @@ setInterval(loadBatches, 2000);
 let uploadMessages = [];
 
 
-function showUploadMessage(message, type = "error") {
+function showUploadMessage(message, type = "error", clear_previous = false) {
 
+    if (clear_previous) {
+        uploadMessages = [];
+    }
     uploadMessages.push(message);
 
     const box = document.getElementById("upload-message");
 
     box.className = type;
+
     box.textContent = uploadMessages.join("\n\n");
     box.style.display = "block";
 }
@@ -483,13 +610,13 @@ dz.on("success", (file, response) => {
 });
 
 /* fires when ALL files complete */
-dz.on("queuecomplete", () => {
-    console.log("All uploads completed");
+// dz.on("queuecomplete", () => {
+//     console.log("All uploads completed");
 
-    dz.removeAllFiles();
+//     dz.removeAllFiles();
 
-    batchId = null;
-});
+//     batchId = null;
+// });
 </script>
 
 </body>

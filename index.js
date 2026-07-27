@@ -195,6 +195,14 @@ const storage = multer.diskStorage({
         cb(null, file.originalname);
     }
 });
+app.get("/validate-batch/:batchId", (req, res) => {
+    const batchId = req.params.batchId.trim();
+    const batchPath = path.join(UPLOAD_DIR, batchId);
+
+    res.json({
+        exists: fs.existsSync(batchPath)
+    });
+});
 const upload = multer({ storage });
 const { spawn } = require("child_process");
 
@@ -427,9 +435,7 @@ app.post("/validate", (req, res) => {
 
     // run multer manually so we can clean up the temp folder on any error
     validateUpload(req, res, (err) => {
-
         const tempDir = req.validateTempDir;
-
         const cleanup = () => {
             if (tempDir) {
                 fs.rm(tempDir, { recursive: true, force: true }, (rmErr) => {

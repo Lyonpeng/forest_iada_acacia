@@ -49,6 +49,17 @@ main { padding: 76px 20px 28px; }
     background: transparent !important;
 }
 
+/* Completely lock Dropzone */
+.dropzone-locked {
+    opacity: 0.5;
+    cursor: not-allowed;
+}
+
+/* Hide remove/cancel buttons while locked */
+.dropzone-locked .dz-remove,
+.dropzone-locked .dz-cancel {
+    display: none !important;
+}
 .dropzone .dz-preview .dz-image {
     background: transparent !important;
     border-radius: 6px;
