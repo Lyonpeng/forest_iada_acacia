@@ -1,6 +1,5 @@
 node_modules/
 python/venv/
-python/northup.py
 **/__pycache__/
 *.pyc
 
@@ -11,6 +10,7 @@ upload/
 Validation_note.xlsx
 yaml_update.txt
 /status.json   # stray root file if detection.py ever writes without a batch folder
+northup.py
 
 # large binaries — distribute separately if needed
 # exiftool-13.59_64/

@@ -38,7 +38,7 @@
 
 <!-- SET UP PANEL -->
 <div id="tab-setup" class="tab-panel active">
-    <div>
+    <div class="instruction">
         <h2> Instruction </h2>
         <p> 1. Prepare configuration settings for Acacia detection and geolocation </p>
         <p> 2. Upload your image files with the correct drone metadata</p>
@@ -52,12 +52,6 @@
             <h2> Configuration </h2>
 
             <!-- STEP 2: PARAMETERS -->
-            <label class="field-label" for="yawSource">Main orientation</label>
-            <select id="yawSource" class="batch-input">
-                <option value="gimbal">Gimbal yaw</option>
-                <option value="flight">Flight yaw</option>
-            </select>
-
             <label class="field-label" for="sensorWidth">Sensor width (mm)</label>
             <input type="number" id="sensorWidth" class="batch-input"
                    step="0.01" min="0" value="17.3"
@@ -164,10 +158,7 @@ dz.options.createImageThumbnails = true;
 // (exiftool) against them in a temporary folder. Returns true if every image
 // has the required EXIF/DJI metadata, false (and shows the issues) otherwise.
 async function validateEXIFFiles() {
-    const yawSource = document.getElementById("yawSource").value;
-
     const formData = new FormData();
-    formData.append("yawSource", yawSource);
     for (const file of dz.files) {
         formData.append("file", file, file.name);
     }
@@ -237,6 +228,7 @@ document.getElementById("uploadBtn").addEventListener("click", async () => {
             "Please enter the name of the image batch.",
             "error"
         );
+        enableDropzoneRemoveLinks();
         return;
     }
     const uniqueBatch = await validateBatchName(batchName);
@@ -245,6 +237,7 @@ document.getElementById("uploadBtn").addEventListener("click", async () => {
             `Batch "${batchName}" already exists. Please enter another batch name.`,
             "error"
         );
+        enableDropzoneRemoveLinks();
         return;
     }
     // -------------------------
@@ -255,6 +248,7 @@ document.getElementById("uploadBtn").addEventListener("click", async () => {
             "Please upload images before clicking Run.",
             "error"
         );
+        enableDropzoneRemoveLinks();
         return;
     }
     // -------------------------
@@ -271,14 +265,11 @@ document.getElementById("uploadBtn").addEventListener("click", async () => {
 
         btn.disabled = false;
         btn.textContent = "Run";
-
+        enableDropzoneRemoveLinks();
         return;
     }
 
     batchId = batchName;
-
-    const yawSource =
-        document.getElementById("yawSource").value;
 
     const sensorWidth =
         document.getElementById("sensorWidth").value;
@@ -315,7 +306,6 @@ document.getElementById("uploadBtn").addEventListener("click", async () => {
 
             body: JSON.stringify({
                 batchId,
-                yawSource,
                 sensorWidth
             })
         })

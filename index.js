@@ -279,7 +279,6 @@ app.post("/process", (req, res) => {
     }
 
     // customisation from the front-end set-up
-    const yawSource = req.body.yawSource === "flight" ? "flight" : "gimbal";
     const parsedWidth = parseFloat(req.body.sensorWidth);
     const sensorWidth = Number.isFinite(parsedWidth) && parsedWidth > 0
         ? String(parsedWidth)
@@ -293,7 +292,6 @@ app.post("/process", (req, res) => {
             "-u",                       // unbuffered: stream Python output in real time
             "python/detection.py",
             BatchId,
-            yawSource,
             sensorWidth
         ], {
             // stdout -> terminal; stderr piped so we can capture the traceback
@@ -463,8 +461,6 @@ app.post("/validate", (req, res) => {
             });
         }
 
-        const yawSource = req.body.yawSource === "flight" ? "flight" : "gimbal";
-
         const PYTHON_BIN = process.env.PYTHON_BIN || "python";
 
         let python;
@@ -472,8 +468,7 @@ app.post("/validate", (req, res) => {
             python = spawn(PYTHON_BIN, [
                 "-u",
                 "python/validate_metadata.py",
-                tempDir,
-                yawSource
+                tempDir
             ], {
                 stdio: ["ignore", "pipe", "pipe"],
                 env: { ...process.env, PYTHONUNBUFFERED: "1" }

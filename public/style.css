@@ -193,6 +193,16 @@ button {
     margin-top: 0;
     margin-bottom: 20px;
 }
+
+/* instruction block above the set-up cards */
+.instruction {
+    margin-bottom: 28px;
+}
+/* the last line already carries a paragraph margin — drop it so the
+   spacing below is exactly the block's own margin */
+.instruction p:last-child {
+    margin-bottom: 0;
+}
 .field-label {
     display: block;
     font-weight: 600;

@@ -65,14 +65,12 @@ def export_mask_gps_to_kml(mask_gps, output_folder="results", output_filename="c
 # # Image_detection("images/test5/test_set/5.jpg", model,device,0.6)
 class Image_detection:
     def __init__(self, image_path, model, device, threshold,
-                 yaw_source="gimbal", sensor_width_mm=17.3):
+                 sensor_width_mm=17.3):
         self.path=image_path
         self.device=device
         self.score_threshold=threshold
         self.model=model
         # ---- customisable set-up (comes from the front end) ----
-        # which orientation to use for the yaw rotation: "gimbal" or "flight"
-        self.yaw_source = "flight" if str(yaw_source).lower() == "flight" else "gimbal"
         # sensor width supplied in millimetres (e.g. 17.3 for DJI Zenmuse L2,
         # 6.4 for DJI Mavic); stored in metres to match the GSD formula
         self.sensor_width = float(sensor_width_mm) / 1000.0
@@ -82,13 +80,13 @@ class Image_detection:
         self.scores = []
         self.masks = []
         self.gimbal = None
-        self.flight_orientation = None
         self.gps = []
         self.geobox = []
         self.geopolygon = []
         self.areas = []
         self.gsd = None
         self.altitude = None
+        self._heading = None   # cached compass heading of the image top edge
         # gps, gsd, orientation = self.parse_metadata()
         #gps = [latitude, N or S , longitude, W or E], langitude and longitude = (degree, min, second)
 
@@ -150,16 +148,9 @@ class Image_detection:
         else:
             print("No gimbal")
 
-        # Flight orientation (Yaw, Pitch, Roll), same tenths-of-degrees convention
-        fy, fp, fr = (meta.get("FlightYawDegree"),
-                      meta.get("FlightPitchDegree"),
-                      meta.get("FlightRollDegree"))
-        if None not in (fy, fp, fr):
-            self.flight_orientation = (int(round(float(fy) * 10)),
-                                       int(round(float(fp) * 10)),
-                                       int(round(float(fr) * 10)))
-        else:
-            print("No flight degrees")
+        # NOTE: flight orientation is deliberately not parsed here — geolocation
+        # uses the gimbal only. The flight degrees are still exported to
+        # gimbal_and_flight.csv, which reads the metadata independently.
     def predict(self):
         image = Image.open(self.path).convert("RGB")
                 # Resize while keeping aspect ratio
@@ -223,6 +214,44 @@ class Image_detection:
             geo_poly.append(c)
         return geo_poly
 
+    def compute_heading(self):
+        """Compass heading of the image's top edge, in degrees clockwise from north.
+
+        Mirrors northup.py's compute_heading(): the gimbal yaw gives the
+        heading, and when the gimbal roll sits near +/-180 the DJI sensor is
+        physically flipped, so the top edge faces the opposite way and the
+        heading must be corrected by 180. Normalised to (-180, 180] and cached
+        per image.
+        """
+        if self._heading is not None:
+            return self._heading
+
+        # geolocation always uses the gimbal, since it is the camera's own
+        # orientation; parse_metadata only sets it when yaw, pitch and roll
+        # are all present
+        if self.gimbal is None:
+            raise ValueError("gimbal yaw/pitch/roll not available for heading calculation")
+
+        # stored as tenths of a degree (see parse_metadata)
+        heading = self.gimbal[0] / 10.0
+
+        # DJI flipped-sensor quirk: |roll| within 45 deg of 180 means the sensor
+        # is upside-down, which rotates the image 180 deg on the ground.
+        roll = self.gimbal[2] / 10.0
+        if abs(abs(roll) - 180) <= 45:
+            heading += 180
+            print(f"Gimbal roll {roll:+.1f}: sensor is flipped, heading corrected by 180")
+
+        # nadir check — same advisory northup.py prints
+        pitch = self.gimbal[1] / 10.0
+        if pitch > -80:
+            print(f"Gimbal pitch {pitch:+.1f} is not nadir: geolocation is only approximate")
+
+        # normalise to (-180, 180]
+        self._heading = (heading + 180) % 360 - 180
+        print(f"Image top faces: {self._heading:+.1f} deg (0 = north)")
+        return self._heading
+
     def pixel_to_latlon(self, x, y):
 
         # Convert GPS center to decimal degrees
@@ -235,16 +264,10 @@ class Image_detection:
         meters_per_deg_lat = 111320.0
         meters_per_deg_lon = 111320.0 * math.cos(math.radians(lat_center))
 
-        # pick the yaw source chosen in the front-end set-up
-        yaw_tuple = self.flight_orientation if self.yaw_source == "flight" else self.gimbal
-        if yaw_tuple is not None:
-            raw_yaw = yaw_tuple[0] / 10.0
-            if raw_yaw < 0:
-                n_yaw = abs(raw_yaw)
-            else:
-                n_yaw = 360 - raw_yaw
-        else:
-            raise ValueError(f"{self.yaw_source} yaw data not available for yaw calculation")
+        # heading of the image top edge (northup.py convention: yaw + the
+        # gimbal-roll 180 flip correction); rotate the pixel offsets by its
+        # negative to turn image axes into East/North
+        n_yaw = (-self.compute_heading()) % 360
 
         dx = x - img_center_x
         dy = y - img_center_y
@@ -467,15 +490,14 @@ if __name__ == "__main__":
         model.to(device)
         model.eval()
         # customisation passed from the front-end set-up
-        # argv[2]: yaw source ("gimbal" or "flight"); argv[3]: sensor width in mm
-        yaw_source = sys.argv[2] if len(sys.argv) > 2 else "gimbal"
+        # argv[2]: sensor width in mm
         try:
-            sensor_width_mm = float(sys.argv[3]) if len(sys.argv) > 3 else 17.3
+            sensor_width_mm = float(sys.argv[2]) if len(sys.argv) > 2 else 17.3
         except ValueError:
             sensor_width_mm = 17.3
 
         print("Running inference for batch:", batch_id)
-        print(f"Yaw source: {yaw_source} | Sensor width: {sensor_width_mm} mm")
+        print(f"Sensor width: {sensor_width_mm} mm")
         mask_gps = []
         all_detections = []
         # uploads dir relative to this script (project_root/uploads/<batch_id>)
@@ -514,7 +536,6 @@ if __name__ == "__main__":
         for img_path in image_files:
             print("Processing:", img_path)
             det = Image_detection(img_path, model, device, 0.6,
-                                yaw_source=yaw_source,
                                 sensor_width_mm=sensor_width_mm)
             all_detections.append(det)
             mask_gps.append(det.geopolygon)

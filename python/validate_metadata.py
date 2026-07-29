@@ -26,7 +26,8 @@ def read_metadata_folder(folder):
             "-GPSAltitude",
             "-FocalLength",
             "-GimbalYawDegree",
-            "-FlightYawDegree",
+            "-GimbalPitchDegree",
+            "-GimbalRollDegree",
             folder,
         ],
         capture_output=True,
@@ -45,15 +46,22 @@ def read_metadata_folder(folder):
 
 def main():
     if len(sys.argv) < 2:
-        raise RuntimeError("usage: validate_metadata.py <folder> [yaw_source]")
+        raise RuntimeError("usage: validate_metadata.py <folder>")
 
     folder = sys.argv[1]
-    yaw_source = sys.argv[2] if len(sys.argv) > 2 else "gimbal"
 
-    required = ["GPSLatitude", "GPSLongitude", "FocalLength", "GPSAltitude"]
-    required.append(
-        "GimbalYawDegree" if yaw_source == "gimbal" else "FlightYawDegree"
-    )
+    # geolocation needs the GPS fix, the focal length and the full gimbal
+    # orientation — detection.py only sets self.gimbal when yaw, pitch and
+    # roll are all present, and the roll drives the flipped-sensor correction
+    required = [
+        "GPSLatitude",
+        "GPSLongitude",
+        "FocalLength",
+        "GPSAltitude",
+        "GimbalYawDegree",
+        "GimbalPitchDegree",
+        "GimbalRollDegree",
+    ]
 
     metadata = read_metadata_folder(folder)
 
