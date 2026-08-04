@@ -194,14 +194,113 @@ button {
     margin-bottom: 20px;
 }
 
-/* instruction block above the set-up cards */
+/* shared card look for the intro blocks (Getting Started + Instruction) */
+.getting-started,
 .instruction {
-    margin-bottom: 28px;
+    box-sizing: border-box;
+    padding: 22px 24px;
+    margin: 0 0 28px;
+    border: 1px solid rgba(31, 41, 55, 0.7);
+    border-radius: 12px;
+    background: rgba(17, 24, 39, 0.55);
 }
-/* the last line already carries a paragraph margin — drop it so the
-   spacing below is exactly the block's own margin */
+.getting-started h2,
+.instruction h2 {
+    margin: 0 0 10px;
+}
+.gs-lead {
+    margin: 0;
+    max-width: 78ch;
+    color: #cbd5e1;
+    line-height: 1.6;
+}
+.gs-lead strong { color: #5eead4; }
+
+/* three short "need / happens / get" columns, wrapping on narrow screens */
+.gs-points {
+    display: grid;
+    grid-template-columns: repeat(auto-fit, minmax(240px, 1fr));
+    gap: 16px;
+    margin: 20px 0 0;
+}
+.gs-point {
+    padding: 14px 16px;
+    border: 1px solid rgba(31, 41, 55, 0.6);
+    border-radius: 10px;
+    background: rgba(3, 7, 18, 0.35);
+}
+.gs-icon {
+    font-size: 1.1rem;
+    line-height: 1;
+}
+.gs-point h3 {
+    margin: 8px 0 6px;
+    font-size: .82rem;
+    font-weight: 600;
+    letter-spacing: .04em;
+    text-transform: uppercase;
+    color: #5eead4;
+}
+.gs-point p {
+    margin: 0;
+    font-size: .88rem;
+    line-height: 1.55;
+    color: #9ca3af;
+}
+.gs-tip {
+    margin: 18px 0 0;
+    padding-top: 14px;
+    border-top: 1px solid rgba(31, 41, 55, 0.7);
+    font-size: .86rem;
+    color: #9ca3af;
+}
+.gs-tip strong { color: #fbbf24; }
+
+/* "continue" button that jumps to the Set Up tab */
+.gs-cta {
+    margin-top: 18px;
+    background: linear-gradient(to top, #0d9488, #14b8a6);
+    color: #fff;
+    border: none;
+    border-radius: 6px;
+    padding: 10px 22px;
+    font-size: 14px;
+    font-weight: 600;
+    font-family: inherit;
+    cursor: pointer;
+}
+.gs-cta:hover {
+    background: linear-gradient(to top, #0f766e, #0d9488);
+}
+
+/* instruction card above the set-up cards (box styling is shared with
+   .getting-started above); numbered steps read as a tidy list */
+.instruction p {
+    margin: 0 0 10px;
+    color: #cbd5e1;
+    line-height: 1.6;
+}
 .instruction p:last-child {
     margin-bottom: 0;
+}
+
+/* "Note:" line — same muted text + amber label as the .gs-tip line */
+.note {
+    font-size: .86rem;
+    line-height: 1.55;
+    color: #9ca3af;
+}
+.note strong { color: #fbbf24; }
+
+/* sits between the numbered steps inside the instruction card */
+.instruction p.note {
+    margin: 0 0 10px;
+    color: #9ca3af;
+}
+
+/* under a form field, hugs the input above it */
+.setup-box .note {
+    margin: -10px 0 0;
 }
 .field-label {
     display: block;
@@ -209,7 +308,7 @@ button {
     font-size: .8rem;
     /* text-transform: uppercase; */
     letter-spacing: .05em;
-    color: #9ca3af;
+    color: #e5e7eb;      /* same brightness as the default body text */
     margin-bottom: 6px;
 }
 .batch-input {

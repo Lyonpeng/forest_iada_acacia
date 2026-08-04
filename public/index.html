@@ -32,17 +32,61 @@
 
 <!-- TAB BAR -->
 <div class="tabs">
-    <button class="tab-btn active" data-tab="setup" onclick="showTab('setup')">Set Up</button>
+    <button class="tab-btn active" data-tab="start" onclick="showTab('start')">Getting Started</button>
+    <button class="tab-btn" data-tab="setup" onclick="showTab('setup')">Set Up</button>
     <button class="tab-btn" data-tab="result" onclick="showTab('result')">Result</button>
 </div>
 
+<!-- GETTING STARTED PANEL -->
+<div id="tab-start" class="tab-panel active">
+    <div class="getting-started">
+        <h2>Getting Started</h2>
+        <p class="gs-lead">
+            Welcome! This tool detects <strong>Acacia trees</strong> in your drone images using a deep learning model
+            that is trained to identify Acacia trees from aerial imagery. It then geolocates each detection
+            and pins each one to a real-world location on the map alongside the set of data coordinates that you can work with.
+        </p>
+
+        <div class="gs-points">
+            <div class="gs-point">
+                <span class="gs-icon">📷</span>
+                <h3>What you need</h3>
+                <p>Drone images, with their original metadata
+                   intact, the required information are GPS coordinates, focal length and gimbal orientation.</p>
+            </div>
+            <div class="gs-point">
+                <span class="gs-icon">🧠</span>
+                <h3>What happens</h3>
+                <p>A deep-learning model outlines every Acacia tree it detects, then
+                   converts those pixels into latitude and longitude using geolocation technique usingthe drone's
+                   altitude, orientation and heading.</p>
+            </div>
+            <div class="gs-point">
+                <span class="gs-icon">🌍</span>
+                <h3>What you get</h3>
+                <p>Annotated images, a CSV file containing coordinates of each detection and a KML file for Google Earth,
+                   plus a 3D globe view of the whole batch.</p>
+            </div>
+        </div>
+
+        <p class="gs-tip">
+            <strong>Tip:</strong> Upload the original files. Resizing, screenshotting or
+            re-exporting strips the metadata the geolocation depends on.
+        </p>
+
+        <button class="gs-cta" type="button" onclick="showTab('setup')">
+            Continue to Set Up →
+        </button>
+    </div>
+</div>
+
 <!-- SET UP PANEL -->
-<div id="tab-setup" class="tab-panel active">
+<div id="tab-setup" class="tab-panel">
     <div class="instruction">
         <h2> Instruction </h2>
         <p> 1. Prepare configuration settings for Acacia detection and geolocation </p>
         <p> 2. Upload your image files with the correct drone metadata</p>
-        <p> *Image metadata needs to include EXIF format and includes GPS coordinates and flight orientation</p>
+        <p class="note"><strong>Note:</strong> Image metadata needs to be in EXIF format and include GPS coordinates and flight orientation</p>
         <p> 3. Click "Run" to start performing Acacia detection and geolocation</p>
     </div>
     <div class="setup-layout">
@@ -56,6 +100,7 @@
             <input type="number" id="sensorWidth" class="batch-input"
                    step="0.01" min="0" value="17.3"
                    placeholder="e.g. 17.3 (DJI Zenmuse L2) or 6.4 (DJI Mavic)" />
+            <p class="note"><strong>Note:</strong> Please check the sensor width of your drone model</p>
 
 
         </div>
