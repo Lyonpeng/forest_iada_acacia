@@ -229,12 +229,8 @@ button {
     border-radius: 10px;
     background: rgba(3, 7, 18, 0.35);
 }
-.gs-icon {
-    font-size: 1.1rem;
-    line-height: 1;
-}
 .gs-point h3 {
-    margin: 8px 0 6px;
+    margin: 0 0 6px;
     font-size: .82rem;
     font-weight: 600;
     letter-spacing: .04em;
@@ -284,13 +280,13 @@ button {
     margin-bottom: 0;
 }
 
-/* "Note:" line — same muted text + amber label as the .gs-tip line */
+/* "Note:" line — muted text with a teal label */
 .note {
     font-size: .86rem;
     line-height: 1.55;
     color: #9ca3af;
 }
-.note strong { color: #fbbf24; }
+.note strong { color: #5eead4; }
 
 /* sits between the numbered steps inside the instruction card */
 .instruction p.note {

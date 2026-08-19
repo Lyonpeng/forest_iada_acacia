@@ -42,36 +42,33 @@
     <div class="getting-started">
         <h2>Getting Started</h2>
         <p class="gs-lead">
-            Welcome! This tool detects <strong>Acacia trees</strong> in your drone images using a deep learning model
-            that is trained to identify Acacia trees from aerial imagery. It then geolocates each detection
-            and pins each one to a real-world location on the map alongside the set of data coordinates that you can work with.
+            Welcome! This tool detects <strong>Acacia trees</strong> in your drone images using deep learning models
+            that are trained to identify Acacia trees from drone aerial imagery. It then geolocates
+            and pins each detection to a real-world location on the map.
         </p>
 
         <div class="gs-points">
             <div class="gs-point">
-                <span class="gs-icon">📷</span>
                 <h3>What you need</h3>
                 <p>Drone images, with their original metadata
                    intact, the required information are GPS coordinates, focal length and gimbal orientation.</p>
             </div>
             <div class="gs-point">
-                <span class="gs-icon">🧠</span>
                 <h3>What happens</h3>
                 <p>A deep-learning model outlines every Acacia tree it detects, then
                    converts those pixels into latitude and longitude using geolocation technique usingthe drone's
                    altitude, orientation and heading.</p>
             </div>
-            <div class="gs-point">
-                <span class="gs-icon">🌍</span>
+            <!-- <div class="gs-point">
                 <h3>What you get</h3>
                 <p>Annotated images, a CSV file containing coordinates of each detection and a KML file for Google Earth,
                    plus a 3D globe view of the whole batch.</p>
-            </div>
+            </div> -->
         </div>
 
         <p class="gs-tip">
             <strong>Tip:</strong> Upload the original files. Resizing, screenshotting or
-            re-exporting strips the metadata the geolocation depends on.
+            re-exporting strips the image metadata needed for geolocation.
         </p>
 
         <button class="gs-cta" type="button" onclick="showTab('setup')">
@@ -97,8 +94,8 @@
 
             <!-- STEP 2: PARAMETERS -->
             <label class="field-label" for="sensorWidth">Sensor width (mm)</label>
-            <input type="number" id="sensorWidth" class="batch-input"
-                   step="0.01" min="0" value="17.3"
+            <input type="text" id="sensorWidth" class="batch-input"
+                   inputmode="decimal" value="17.3"
                    placeholder="e.g. 17.3 (DJI Zenmuse L2) or 6.4 (DJI Mavic)" />
             <p class="note"><strong>Note:</strong> Please check the sensor width of your drone model</p>
 
@@ -182,12 +179,12 @@ const dz = new Dropzone("#myDropzone", {
     url: "/upload",
     paramName: "file",
     autoProcessQueue: false,
-    parallelUploads: 10,
+    parallelUploads: 100,
     maxFilesize: 30,
     maxThumbnailFilesize: 30,
     addRemoveLinks: true,
     acceptedFiles: "image/*",
-    dictDefaultMessage: "Drop drone aerial images here, or click to browse",
+    dictDefaultMessage: "Click to select images or drag them here",
 
     // generate an uncropped thumbnail; CSS stretches it to fill the box
     thumbnailMethod: "contain",
@@ -199,6 +196,31 @@ const dz = new Dropzone("#myDropzone", {
     // resizeMethod: "contain"
 });
 dz.options.createImageThumbnails = true;
+
+/* -------------------------
+   SENSOR WIDTH = NUMBERS + ONE DECIMAL POINT ONLY
+   It's a plain text box (no spinner arrows, no scroll-wheel changes), so the
+   digits-and-one-dot rule is enforced here. Covers typing and pasting.
+-------------------------- */
+const sensorWidthInput = document.getElementById("sensorWidth");
+
+sensorWidthInput.addEventListener("input", () => {
+
+    // drop anything that isn't a digit or a dot
+    let clean = sensorWidthInput.value.replace(/[^0-9.]/g, "");
+
+    // keep only the first decimal point
+    const parts = clean.split(".");
+    if (parts.length > 2) {
+        clean = parts[0] + "." + parts.slice(1).join("");
+    }
+
+    // only rewrite when something was actually stripped, so a normal
+    // keystroke never jumps the caret to the end
+    if (clean !== sensorWidthInput.value) {
+        sensorWidthInput.value = clean;
+    }
+});
 // Send the queued images to the backend, which runs validate_metadata.py
 // (exiftool) against them in a temporary folder. Returns true if every image
 // has the required EXIF/DJI metadata, false (and shows the issues) otherwise.

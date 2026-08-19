@@ -20,3 +20,4 @@ northup.py
 .vscode/
 .idea/
 *.log
+.claude/
