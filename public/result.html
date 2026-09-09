@@ -1,3 +1,4 @@
+```html
 <html>
 <head>
     <title>Acacia Inference &amp; Geolocation &mdash; Results</title>
@@ -6,11 +7,14 @@
     <!-- CesiumJS (3D globe) -->
     <link rel="stylesheet"
           href="https://unpkg.com/cesium@1.119/Build/Cesium/Widgets/widgets.css">
+
     <script>
         // tells Cesium where to load its workers / assets from
         window.CESIUM_BASE_URL = "https://unpkg.com/cesium@1.119/Build/Cesium/";
     </script>
+
     <script src="https://unpkg.com/cesium@1.119/Build/Cesium/Cesium.js"></script>
+
     <link rel="preconnect" href="https://fonts.googleapis.com">
     <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
     <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&display=swap" rel="stylesheet">
@@ -23,35 +27,76 @@
             background: #030712;
             color: #e5e7eb;
         }
+
         body::before {
             content: "";
-            position: fixed; inset: 0; z-index: -1; pointer-events: none;
-            background: radial-gradient(120% 90% at 50% -10%, rgba(20,184,166,0.08), rgba(3,7,18,0) 55%);
+            position: fixed;
+            inset: 0;
+            z-index: -1;
+            pointer-events: none;
+            background: radial-gradient(
+                120% 90% at 50% -10%,
+                rgba(20,184,166,0.08),
+                rgba(3,7,18,0) 55%
+            );
         }
 
-        /* ── top bar (matches the other dashboards' 56px IADA bar) ───── */
+        /* ── top bar ─────────────────────────────────────────────────── */
         #hdr {
-            position: fixed; top: 0; left: 0; right: 0; z-index: 100;
+            position: fixed;
+            top: 0;
+            left: 0;
+            right: 0;
+            z-index: 100;
             height: 56px;
-            display: flex; align-items: center;
-            gap: 12px; padding: 0 16px;
+            display: flex;
+            align-items: center;
+            gap: 12px;
+            padding: 0 16px;
             background: rgba(3, 7, 18, 0.85);
             border-bottom: 1px solid rgba(31, 41, 55, 0.7);
             backdrop-filter: blur(12px);
         }
-        #hdr .iada-title { font-size: .9rem; font-weight: 600; color: #e5e7eb; line-height: 1.1; }
-        #hdr .iada-sub   { font-size: .6rem; color: #6b7280; margin-top: 1px; }
-        #hdr .spacer     { flex: 1; }
+
+        #hdr .iada-title {
+            font-size: .9rem;
+            font-weight: 600;
+            color: #e5e7eb;
+            line-height: 1.1;
+        }
+
+        #hdr .iada-sub {
+            font-size: .6rem;
+            color: #6b7280;
+            margin-top: 1px;
+        }
+
+        #hdr .spacer {
+            flex: 1;
+        }
+
         .iada-navlink {
-            border-radius: 6px; padding: 4px 11px;
-            font-size: .72rem; font-weight: 500; color: #d1d5db;
-            border: 1px solid #1f2937; background: transparent;
-            text-decoration: none; cursor: pointer; transition: all .15s;
+            border-radius: 6px;
+            padding: 4px 11px;
+            font-size: .72rem;
+            font-weight: 500;
+            color: #d1d5db;
+            border: 1px solid #1f2937;
+            background: transparent;
+            text-decoration: none;
+            cursor: pointer;
+            transition: all .15s;
             font-family: inherit;
         }
-        .iada-navlink:hover { color: #5eead4; border-color: rgba(20,184,166,.45); }
 
-        main { padding: 76px 20px 28px; }
+        .iada-navlink:hover {
+            color: #5eead4;
+            border-color: rgba(20,184,166,.45);
+        }
+
+        main {
+            padding: 76px 20px 28px;
+        }
 
         h2#title {
             margin: 0 0 18px 0;
@@ -59,7 +104,7 @@
             color: #e5e7eb;
         }
 
-        /* section labels, echoing the dashboard card tags */
+        /* section labels */
         h3 {
             font-size: .72rem;
             font-weight: 600;
@@ -69,6 +114,7 @@
             margin: 26px 0 10px 0;
         }
 
+        /* ── globe ───────────────────────────────────────────────────── */
         #cesiumContainer {
             width: 100%;
             max-width: 1100px;
@@ -92,13 +138,16 @@
             font-size: 14px;
             color: #9ca3af;
         }
+
         .map-controls label {
             cursor: pointer;
         }
+
         .map-controls input[type="radio"] {
             accent-color: #14b8a6;
         }
 
+        /* ── gallery ────────────────────────────────────────────────── */
         .gallery {
             display: grid;
             grid-template-columns: repeat(auto-fill, minmax(300px, 1fr));
@@ -119,13 +168,86 @@
             color: #6b7280;
         }
 
-        /* mobile: keep the 56px bar on one row */
+        .results-header {
+            max-width: 1100px;
+            display: flex;
+            align-items: center;
+            justify-content: space-between;
+            gap: 16px;
+            margin-bottom: 18px;
+        }
+
+        .results-header h2#title {
+            margin: 0;
+        }
+
+        .download-buttons {
+            display: flex;
+            gap: 10px;
+        }
+
+        .download-btn {
+            display: inline-flex;
+            align-items: center;
+            justify-content: center;
+            padding: 9px 14px;
+            border: 1px solid rgba(20, 184, 166, 0.45);
+            border-radius: 6px;
+            background: rgba(20, 184, 166, 0.08);
+            color: #5eead4;
+            font-size: 13px;
+            font-weight: 500;
+            text-decoration: none;
+            cursor: pointer;
+            transition: all 0.15s;
+        }
+
+        .download-btn:hover {
+            background: rgba(20, 184, 166, 0.18);
+            border-color: #14b8a6;
+        }
+
+        .download-btn.disabled {
+            opacity: 0.4;
+            pointer-events: none;
+            cursor: not-allowed;
+        }
+
         @media (max-width: 640px) {
-            #hdr { gap: 8px; padding: 0 10px; }
-            #hdr .iada-sub { display: none; }
-            .iada-navlink { padding: 4px 8px; font-size: .66rem; }
-            main { padding: 72px 12px 20px; }
-            #cesiumContainer { height: 55vh; }
+            #hdr {
+                gap: 8px;
+                padding: 0 10px;
+            }
+
+            #hdr .iada-sub {
+                display: none;
+            }
+
+            .iada-navlink {
+                padding: 4px 8px;
+                font-size: .66rem;
+            }
+
+            main {
+                padding: 72px 12px 20px;
+            }
+
+            #cesiumContainer {
+                height: 55vh;
+            }
+
+            .download-bar {
+                flex-direction: column;
+                align-items: flex-start;
+            }
+
+            .download-buttons {
+                width: 100%;
+            }
+
+            .download-btn {
+                flex: 1;
+            }
         }
     </style>
 </head>
@@ -134,38 +256,69 @@
 
 <!-- IADA TOP BAR -->
 <div id="hdr">
-    <a href="http://10.1.7.26:8083/" style="display:flex;align-items:center;flex-shrink:0;text-decoration:none;">
-        <img src="iada-logo-onbg.png" alt="IADA" style="height:28px;width:auto;">
+    <a href="http://10.1.7.26:8083/"
+       style="display:flex;align-items:center;flex-shrink:0;text-decoration:none;">
+        <img src="iada-logo-onbg.png"
+             alt="IADA"
+             style="height:28px;width:auto;">
     </a>
+
     <div style="min-width:0;">
         <div class="iada-title">Acacia Aerial Tree Detection</div>
         <div class="iada-sub">UAV imagery · inference · geolocation</div>
     </div>
+
     <div class="spacer"></div>
+
     <a class="iada-navlink" href="/index.html">← Back</a>
 </div>
 
 <main>
 
-<h2 id="title">Results</h2>
+    <div class="results-header">
+        <h2 id="title">Results</h2>
 
-<!-- 3D GLOBE -->
-<h3>Geolocation</h3>
-<div class="map-controls">
-    <span>Display:</span>
-    <label><input type="radio" name="coverageMode" value="shaded" checked> Mask</label>
-    <label><input type="radio" name="coverageMode" value="outline"> Outline</label>
-</div>
-<div id="cesiumContainer"></div>
-<p id="mapNote" class="map-note"></p>
+        <div class="download-buttons">
+            <a id="downloadCsv"
+            class="download-btn"
+            download="data.csv">
+                ↓ Download CSV
+            </a>
 
-<!-- IMAGE GALLERY -->
-<h3>Detection</h3>
-<div id="gallery" class="gallery"></div>
+            <a id="downloadKml"
+            class="download-btn"
+            download="coverage.kml">
+                ↓ Download KML
+            </a>
+        </div>
+    </div>
+
+    <!-- 3D GLOBE -->
+    <h3>Geolocation</h3>
+
+    <div class="map-controls">
+        <span>Display:</span>
+        <label>
+            <input type="radio" name="coverageMode" value="shaded" checked>
+            Mask
+        </label>
+        <label>
+            <input type="radio" name="coverageMode" value="outline">
+            Outline
+        </label>
+    </div>
+
+    <div id="cesiumContainer"></div>
+    <p id="mapNote" class="map-note"></p>
+
+    <!-- IMAGE GALLERY -->
+    <h3>Detection</h3>
+    <div id="gallery" class="gallery"></div>
 
 </main>
 
 <script>
+
 // batchId is injected by the server (POST /result) as window.BATCH_ID
 const batchId = window.BATCH_ID || null;
 
@@ -173,25 +326,76 @@ const title = document.getElementById("title");
 const gallery = document.getElementById("gallery");
 const mapNote = document.getElementById("mapNote");
 
+const downloadCsv = document.getElementById("downloadCsv");
+const downloadKml = document.getElementById("downloadKml");
+
 // coverage rendering: filled polygons vs. their outline polylines
 let coverageFills = [];
 let coverageOutlines = [];
 
 function setCoverageMode(outlineOnly) {
-    coverageFills.forEach(e => { if (e.polygon) e.polygon.fill = !outlineOnly; });
-    coverageOutlines.forEach(e => { if (e.polyline) e.polyline.show = outlineOnly; });
+    coverageFills.forEach(e => {
+        if (e.polygon) e.polygon.fill = !outlineOnly;
+    });
+
+    coverageOutlines.forEach(e => {
+        if (e.polyline) e.polyline.show = outlineOnly;
+    });
 }
 
 document.querySelectorAll('input[name="coverageMode"]').forEach(radio => {
-    radio.addEventListener("change", e => setCoverageMode(e.target.value === "outline"));
+    radio.addEventListener("change", e => {
+        setCoverageMode(e.target.value === "outline");
+    });
 });
+
+
+/* -------------------------
+   DOWNLOADS
+-------------------------- */
+
+function setupDownloads() {
+
+    const csvUrl =
+        `/uploads/${encodeURIComponent(batchId)}/data.csv`;
+
+    const kmlUrl =
+        `/uploads/${encodeURIComponent(batchId)}/coverage.kml`;
+
+    downloadCsv.href = csvUrl;
+    downloadKml.href = kmlUrl;
+
+    // Check whether the files exist before enabling the buttons
+    Promise.all([
+        fetch(csvUrl, { method: "HEAD" }),
+        fetch(kmlUrl, { method: "HEAD" })
+    ])
+    .then(([csvRes, kmlRes]) => {
+
+        if (!csvRes.ok) {
+            downloadCsv.classList.add("disabled");
+            downloadCsv.removeAttribute("href");
+        }
+
+        if (!kmlRes.ok) {
+            downloadKml.classList.add("disabled");
+            downloadKml.removeAttribute("href");
+        }
+
+    })
+    .catch(err => {
+        console.error("Download file check failed:", err);
+    });
+}
+
 
 /* -------------------------
    3D GLOBE (Cesium)
 -------------------------- */
+
 function initGlobe() {
 
-    // Google satellite imagery (deepest high-zoom detail, no API key required).
+    // Google satellite imagery
     const viewer = new Cesium.Viewer("cesiumContainer", {
         baseLayer: new Cesium.ImageryLayer(
             new Cesium.UrlTemplateImageryProvider({
@@ -201,6 +405,7 @@ function initGlobe() {
                 maximumLevel: 22
             })
         ),
+
         baseLayerPicker: false,
         geocoder: false,
         timeline: false,
@@ -208,13 +413,14 @@ function initGlobe() {
         homeButton: false,
         sceneModePicker: true,
         navigationHelpButton: false,
-        sceneMode: Cesium.SceneMode.SCENE2D   // start in flat 2D view by default
+        sceneMode: Cesium.SceneMode.SCENE2D
     });
 
     viewer.scene.screenSpaceCameraController._zoomFactor = 1.5;
 
-    // Load the batch's coverage.kml (detection polygons + GPS)
-    const kmlUrl = `/uploads/${encodeURIComponent(batchId)}/coverage.kml`;
+    // Load the batch's coverage.kml
+    const kmlUrl =
+        `/uploads/${encodeURIComponent(batchId)}/coverage.kml`;
 
     Cesium.KmlDataSource.load(kmlUrl, {
         camera: viewer.scene.camera,
@@ -222,28 +428,39 @@ function initGlobe() {
         clampToGround: true
     })
     .then(dataSource => {
+
         viewer.dataSources.add(dataSource);
 
         if (dataSource.entities.values.length === 0) {
-            mapNote.textContent = "Coverage file loaded but contains no geometry.";
+            mapNote.textContent =
+                "Coverage file loaded but contains no geometry.";
             return;
         }
 
         // force red coverage, build an outline, and drop a point marker per polygon
         const now = viewer.clock.currentTime;
+
         coverageFills = [];
         coverageOutlines = [];
 
         dataSource.entities.values.forEach(entity => {
+
             if (entity.polygon) {
-                entity.polygon.material = Cesium.Color.RED.withAlpha(0.5);
+
+                entity.polygon.material =
+                    Cesium.Color.RED.withAlpha(0.5);
+
                 coverageFills.push(entity);
 
-                const hierarchy = entity.polygon.hierarchy.getValue(now);
+                const hierarchy =
+                    entity.polygon.hierarchy.getValue(now);
+
                 if (hierarchy && hierarchy.positions.length) {
 
-                    // ground-clamped polyline tracing the mask outline (hidden until "Outline" mode)
-                    const loop = hierarchy.positions.concat([hierarchy.positions[0]]);
+                    // ground-clamped polyline tracing the mask outline
+                    const loop =
+                        hierarchy.positions.concat([hierarchy.positions[0]]);
+
                     const outline = viewer.entities.add({
                         polyline: {
                             positions: loop,
@@ -253,10 +470,13 @@ function initGlobe() {
                             show: false
                         }
                     });
+
                     coverageOutlines.push(outline);
 
-                    // pick a single coordinate (centre of the polygon) for a marker
-                    const center = Cesium.BoundingSphere.fromPoints(hierarchy.positions).center;
+                    // pick a single coordinate for a marker
+                    const center =
+                        Cesium.BoundingSphere.fromPoints(hierarchy.positions).center;
+
                     viewer.entities.add({
                         name: entity.name || "Detection",
                         position: center,
@@ -270,36 +490,47 @@ function initGlobe() {
                     });
                 }
             }
+
             if (entity.polyline) {
                 entity.polyline.material = Cesium.Color.RED;
                 entity.polyline.width = 2;
             }
         });
 
-        // apply whichever mode is currently selected (defaults to shaded)
-        const selected = document.querySelector('input[name="coverageMode"]:checked');
+        // apply whichever mode is currently selected
+        const selected =
+            document.querySelector('input[name="coverageMode"]:checked');
+
         setCoverageMode(selected && selected.value === "outline");
 
         viewer.flyTo(dataSource);
+
         mapNote.textContent = "";
     })
     .catch(err => {
+
         mapNote.textContent =
             "No coverage map available for this batch (missing or invalid coverage.kml).";
+
         console.error("KML load failed:", err);
     });
 }
 
+
 /* -------------------------
    IMAGE GALLERY
 -------------------------- */
+
 async function loadImages() {
 
-    const res = await fetch(`/images/${encodeURIComponent(batchId)}`);
+    const res =
+        await fetch(`/images/${encodeURIComponent(batchId)}`);
+
     const images = await res.json();
 
     if (images.length === 0) {
-        gallery.innerHTML = `<p class="empty">No images found for this batch.</p>`;
+        gallery.innerHTML =
+            `<p class="empty">No images found for this batch.</p>`;
         return;
     }
 
@@ -310,17 +541,27 @@ async function loadImages() {
     `).join("");
 }
 
+
 /* -------------------------
    START
 -------------------------- */
+
 if (!batchId) {
+
     title.textContent = "No batch selected";
+
 } else {
+
     title.textContent = `Result: ${batchId}`;
+
     initGlobe();
     loadImages();
+    setupDownloads();
+
 }
+
 </script>
 
 </body>
 </html>
+```
